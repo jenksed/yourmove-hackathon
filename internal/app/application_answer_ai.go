@@ -821,6 +821,10 @@ func (a *App) applicationAnswerAIHandler(w http.ResponseWriter, r *http.Request)
 		}
 		t.expires = time.Now().Add(30 * time.Minute)
 	}
+	if final == "complete" {
+		// Best-effort provenance: never blocks serving the answer.
+		a.recordAnswerProvenance(snapshot, answerAIHash(answer), time.Now().UTC().Format(time.RFC3339Nano))
+	}
 	registry.mu.Unlock()
 	a.answerAIResult(w, token, t, valid)
 }
