@@ -53,6 +53,9 @@ type jobWorkspace struct {
 	LetterModel          string
 	ProviderReady        map[string]bool
 	LetterResumes        []documentRow
+	LetterEvidence       []letterEvidenceChoice
+	LetterEvidenceRefs   []letterEvidenceRef
+	LetterEvidenceStale  bool
 	Match                MatchRecommendation
 	HasFamilies          bool
 }

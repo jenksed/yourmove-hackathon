@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -29,6 +30,7 @@ type coverBackend struct {
 
 	metaDiscovery bool
 	jsonOutput     bool
+	letterBudget   bool
 	observe       func(RequestMetrics)
 }
 
@@ -128,6 +130,17 @@ func (r Runner) GenerateNarrativeJSON(ctx context.Context, prompt, instructions 
 		r.backend.jsonOutput = true
 	}
 	return r.GenerateNarrative(ctx, prompt, instructions)
+}
+
+// GenerateLetter performs one bounded cover-letter request. Letters carry
+// large source prompts, so the compatible provider uses the discovery output
+// budget with low reasoning effort but no JSON contract: the letter validator
+// rejects structured envelopes.
+func (r Runner) GenerateLetter(ctx context.Context, prompt, instructions string) (string, error) {
+	if r.backend.Provider == "compatible" {
+		r.backend.letterBudget = true
+	}
+	return r.Generate(ctx, prompt, instructions)
 }
 
 // ExecutionLocality describes the configured transport, never inference guarantees.
@@ -304,6 +317,12 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 		fields["max_tokens"] = 2048
 		fields["reasoning_effort"] = "low"
 		fields["response_format"] = map[string]string{"type": "json_object"}
+	} else if backend.letterBudget && backend.Provider == "compatible" {
+		// Cover letters stopped on the output cap with the default budget, so
+		// they use the discovery output profile without a JSON contract.
+		fields := request.(map[string]any)
+		fields["max_tokens"] = 2048
+		fields["reasoning_effort"] = "low"
 	}
 	data, err := json.Marshal(request)
 	if err != nil {
@@ -471,6 +490,8 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 			} `json:"choices"`
 		}
 		if json.Unmarshal(limited, &result) != nil || len(result.Choices) == 0 {
+			// Metadata only: envelope shape and byte counts, never content.
+			log.Printf("compatible provider output: provider=%s envelope=unusable bytes=%d", backend.Provider, len(limited))
 			return "", errCoverOutput
 		}
 		// A completion stopped by the output cap is not a complete letter.
@@ -479,6 +500,7 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 		reason := strings.ToLower(strings.TrimSpace(result.Choices[0].FinishReason))
 		if reason == "length" || reason == "max_tokens" || reason == "content_filter" || reason == "tool_calls" ||
 			((backend.Provider == "openrouter" || narrative) && reason != "" && reason != "stop") {
+			log.Printf("compatible provider output: provider=%s finish=%s bytes=%d text_bytes=%d", backend.Provider, reason, len(limited), len(result.Choices[0].Message.Content))
 			return "", errCoverOutput
 		}
 		if narrative && ((len(result.Choices[0].Message.ToolCalls) > 0 && string(result.Choices[0].Message.ToolCalls) != "[]" && string(result.Choices[0].Message.ToolCalls) != "null") || (len(result.Choices[0].Message.FunctionCall) > 0 && string(result.Choices[0].Message.FunctionCall) != "null")) {

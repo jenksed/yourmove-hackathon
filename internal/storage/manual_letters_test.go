@@ -42,6 +42,10 @@ func TestManualLetterMigrationRetainsLegacyEvidence(t *testing.T) {
 	if err := db.QueryRow(`SELECT count(*) FROM cover_letters WHERE id=42`).Scan(&count); err != nil || count != 1 {
 		t.Fatalf("reopen count %d: %v", count, err)
 	}
+	var refs string
+	if err := db.QueryRow(`SELECT COALESCE(evidence_refs,'<missing>') FROM cover_letters WHERE id=42`).Scan(&refs); err != nil || refs != "" {
+		t.Fatalf("legacy refs not defaulted: %q %v", refs, err)
+	}
 	var integrity string
 	if err := db.QueryRow(`PRAGMA integrity_check`).Scan(&integrity); err != nil || integrity != "ok" {
 		t.Fatalf("integrity %s: %v", integrity, err)

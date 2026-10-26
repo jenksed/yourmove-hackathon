@@ -233,6 +233,17 @@ func initJobsSchema(db *sql.DB) error {
 			return fmt.Errorf("migrate cover letter provider schema: %w", err)
 		}
 	}
+	// Evidence refs pin the reviewed Career Evidence revisions a draft was
+	// written from. Empty means the draft predates evidence support.
+	var hasLetterEvidenceRefs bool
+	if err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pragma_table_info('cover_letters') WHERE name='evidence_refs')`).Scan(&hasLetterEvidenceRefs); err != nil {
+		return fmt.Errorf("inspect cover letter evidence schema: %w", err)
+	}
+	if !hasLetterEvidenceRefs {
+		if _, err := db.Exec(`ALTER TABLE cover_letters ADD COLUMN evidence_refs TEXT NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("migrate cover letter evidence schema: %w", err)
+		}
+	}
 	if err := allowManualCoverLetterSources(db); err != nil {
 		return err
 	}

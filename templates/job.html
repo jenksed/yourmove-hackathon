@@ -354,6 +354,7 @@
             <option value="">Choose a resume</option>
             {{range .LetterResumes}}<option value="{{.ID}}" {{if eq .ID $.SelectedResumeID}}selected{{end}}>{{template "resume-option-label" .}}</option>{{end}}
           </select><small>Defaults to your saved application resume. You can choose a different writing source without changing the resume sent to the employer.</small></div>
+          <fieldset class="field field-full"><legend>Reviewed Career Evidence (optional; up to two)</legend>{{if .LetterEvidence}}{{range .LetterEvidence}}<label class="confirm-row"><input type="checkbox" name="career_evidence" value="{{.Identity}}"><span>{{.Label}}</span></label>{{end}}{{else}}<p class="small-muted">No reviewed Career Evidence. <a href="/career-evidence">Review a career experience →</a></p>{{end}}</fieldset>
         </div>
         <div class="ai-generation-footer">
           <label class="confirm-row letter-consent"><input type="checkbox" name="confirm_external" value="yes" required><span>Use my saved job description and resume evidence to write this draft. Nonlocal providers receive the text outside my device.</span></label>
@@ -364,7 +365,7 @@
       </div></details>
       <div class="ai-writer-details">
         <details class="letter-source-details"><summary>Review the source evidence</summary><div class="letter-source-detail-body">
-          <p class="small-muted">YourMove sends bounded, verified text. A document preview never contacts a model.</p>{{if .Letter.ID}}<p class="small-muted">Saved draft {{.Letter.ID}} · {{.Letter.Provider}} / {{.Letter.Model}}. Editing this draft does not change its source evidence.</p>{{end}}
+          <p class="small-muted">YourMove sends bounded, verified text. A document preview never contacts a model.</p>{{if .Letter.ID}}<p class="small-muted">Saved draft {{.Letter.ID}} · {{.Letter.Provider}} / {{.Letter.Model}}. Editing this draft does not change its source evidence.</p>{{end}}{{if .LetterEvidenceRefs}}<p class="small-muted">Supporting evidence: {{range $i, $r := .LetterEvidenceRefs}}{{if $i}}; {{end}}{{$r.Title}} (revision {{$r.Revision}}){{end}}.{{if .LetterEvidenceStale}} <strong>A supporting record changed since this draft. Review the evidence before reuse; this draft was not rewritten.</strong>{{end}}</p>{{end}}
           <div class="letter-source-title"><strong>Master resume</strong> <span>{{.Sources.Master.Name}}</span></div>
           {{if .Sources.Master.Ready}}<pre class="evidence-text">{{.Sources.Master.Excerpt}}</pre>{{else}}<p class="small-muted">{{.Sources.Master.Message}}</p>{{end}}
           <div class="letter-source-title"><strong>Job-selected resume</strong> <span>{{.Sources.Role.Name}}</span></div>

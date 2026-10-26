@@ -313,8 +313,12 @@ func (a *App) jobDetail(w http.ResponseWriter, r *http.Request) {
 		LetterOpen:           notice != "" || r.URL.Query().Has("draft"),
 		LetterModel:          letterModel,
 		ProviderReady:        providerReady,
+		LetterEvidence:       a.reviewedCareerEvidenceChoices(),
 		Match:                match,
 		HasFamilies:          showMatch,
+	}
+	if letter.ID > 0 {
+		workspace.LetterEvidenceRefs, workspace.LetterEvidenceStale = a.coverLetterEvidenceStatus(letter)
 	}
 	workspace.SubmissionNotice, workspace.SubmissionUncertain = submissionRecoveryNotice(r.URL.Query().Get("submission"))
 	workspace.TransferNotice = r.URL.Query().Get("transfer_notice")
