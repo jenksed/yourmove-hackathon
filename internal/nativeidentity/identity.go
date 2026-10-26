@@ -59,7 +59,7 @@ type Record struct {
 // Each launch gets a new exclusive record; stale evidence cannot be overwritten.
 func Write(run, db, resumes string) (string, error) {
 	if run == "" {
-		return "YourMove", nil
+		return "YourMove Hackathon Edition", nil
 	}
 	if !runPattern.MatchString(run) {
 		return "", fmt.Errorf("invalid native run ID")
@@ -85,7 +85,7 @@ func Write(run, db, resumes string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	title := fmt.Sprintf("YourMove · %s · PID %d", run, os.Getpid())
+	title := fmt.Sprintf("YourMove Hackathon Edition · %s · PID %d", run, os.Getpid())
 	record := Record{run, strings.TrimSpace(string(marker)), os.Getpid(), time.Now().UTC().Format(time.RFC3339Nano), exe, hex.EncodeToString(sum[:]), cwd, filepath.Dir(db), db, resumes, title}
 	encoded, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {

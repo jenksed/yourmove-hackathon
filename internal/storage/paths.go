@@ -22,13 +22,13 @@ func ApplicationStorage() (dbPath, resumeDir string, err error) {
 			if e != nil {
 				return "", "", e
 			}
-			root = filepath.Join(home, "Library", "Application Support", "YourMove")
+			root = filepath.Join(home, "Library", "Application Support", "YourMove Hackathon Edition")
 		} else {
 			config, e := os.UserConfigDir()
 			if e != nil {
 				return "", "", e
 			}
-			root = filepath.Join(config, "YourMove")
+			root = filepath.Join(config, "YourMove Hackathon Edition")
 		}
 	}
 	if !filepath.IsAbs(root) {
@@ -71,15 +71,8 @@ func ApplicationStorage() (dbPath, resumeDir string, err error) {
 	if explicit {
 		return dbPath, resumeDir, nil
 	}
-	legacy, err := filepath.Abs("jobs.db")
-	if err != nil {
-		return "", "", err
-	}
-	if legacy != dbPath {
-		if err := migrateLegacyJobs(dbPath, legacy); err != nil {
-			return "", "", err
-		}
-	}
+	// This edition never discovers or imports a working-directory database.
+	// That prevents a launch from the release repository from copying its data.
 	return dbPath, resumeDir, nil
 }
 

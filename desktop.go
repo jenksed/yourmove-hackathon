@@ -59,7 +59,7 @@ func main() {
 		log.Fatal(err)
 	}
 	desktop := application.New(application.Options{
-		Name:   "YourMove",
+		Name:   "YourMove Hackathon Edition",
 		Assets: application.AssetOptions{Handler: handler},
 	})
 	desktop.Window.NewWithOptions(application.WebviewWindowOptions{

@@ -39,7 +39,7 @@ func main() {
 
 	port := os.Getenv("YOURMOVE_HTTP_PORT")
 	if port == "" {
-		port = "3000"
+		port = "3019"
 	}
 	addr := net.JoinHostPort("127.0.0.1", port)
 	listener, err := net.Listen("tcp", addr)

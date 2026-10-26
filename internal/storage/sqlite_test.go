@@ -105,7 +105,7 @@ func TestAnswerLibrarySearchIndexMigrationPreservesCuratedSnapshot(t *testing.T)
 	}
 }
 
-func TestApplicationStorageMigratesLegacyDatabase(t *testing.T) {
+func TestApplicationStorageDoesNotImportWorkingDirectoryDatabase(t *testing.T) {
 	root := t.TempDir()
 	workingDir := filepath.Join(root, "working")
 	workspace := normalWorkspace(t, root)
@@ -151,35 +151,32 @@ func TestApplicationStorageMigratesLegacyDatabase(t *testing.T) {
 		}
 	}
 
-	migrated, err := OpenDB(dbPath)
+	before, err := os.ReadFile(legacy)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var title string
-	if err := migrated.QueryRow("SELECT title FROM jobs WHERE id=1").Scan(&title); err != nil {
+	isolated, err := OpenDB(dbPath)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := migrated.Close(); err != nil {
+	var jobs int
+	if err := isolated.QueryRow("SELECT count(*) FROM jobs").Scan(&jobs); err != nil {
 		t.Fatal(err)
 	}
-	if title != "Old job" {
-		t.Fatalf("migrated job title = %q", title)
+	if err := isolated.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if jobs != 0 {
+		t.Fatalf("default hackathon workspace imported %d jobs from the working directory", jobs)
 	}
 
 	// Repeating path selection leaves the installed destination and source intact.
 	if _, _, err := ApplicationStorage(); err != nil {
 		t.Fatal(err)
 	}
-	original, err := OpenDB(legacy)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer original.Close()
-	if err := original.QueryRow("SELECT title FROM jobs WHERE id=1").Scan(&title); err != nil {
-		t.Fatalf("original disappeared: %v", err)
-	}
-	if title != "Old job" {
-		t.Fatalf("original job title = %q", title)
+	after, err := os.ReadFile(legacy)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatalf("working-directory database changed: %v", err)
 	}
 }
 
@@ -263,14 +260,15 @@ func TestMigrationRefusesDocumentWorkspaceWithoutInstallingDatabase(t *testing.T
 		t.Fatal(err)
 	}
 	destination := filepath.Join(workspace, "jobs.db")
-	_, _, err = ApplicationStorage()
-	if err == nil || !strings.Contains(err.Error(), "entire workspace") {
-		t.Fatalf("migration should refuse with recovery instructions: %v", err)
+	dbPath, _, err := ApplicationStorage()
+	if err != nil || dbPath != destination {
+		t.Fatalf("hackathon storage should select its isolated workspace without importing legacy data: %q %v", dbPath, err)
 	}
-	for _, path := range []string{destination, destination + ".migration-tmp"} {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			t.Fatalf("migration left %s: %v", path, err)
-		}
+	if _, err := os.Stat(destination); !os.IsNotExist(err) {
+		t.Fatalf("legacy database was imported at %s: %v", destination, err)
+	}
+	if _, err := os.Stat(destination + ".migration-tmp"); !os.IsNotExist(err) {
+		t.Fatalf("migration staging file was created: %v", err)
 	}
 	after, err := os.ReadFile(legacy)
 	if err != nil || !bytes.Equal(before, after) {

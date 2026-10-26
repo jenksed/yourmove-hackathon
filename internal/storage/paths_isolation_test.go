@@ -15,13 +15,13 @@ func normalWorkspace(t *testing.T, root string) string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return filepath.Join(canonical, "Library", "Application Support", "YourMove")
+		return filepath.Join(canonical, "Library", "Application Support", "YourMove Hackathon Edition")
 	}
 	canonical, err := filepath.EvalSymlinks(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return filepath.Join(canonical, "config", "YourMove")
+	return filepath.Join(canonical, "config", "YourMove Hackathon Edition")
 }
 
 func normalStorageEnvironment(t *testing.T, root string) {

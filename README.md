@@ -1,5 +1,18 @@
 ![YourMove — Less repetition. More of what matters.](docs/images/yourmove-hero.png)
 
+# YourMove Hackathon Edition
+
+This repository builds a separate macOS app identity and keeps its default data in `~/Library/Application Support/YourMove Hackathon Edition`. It does not import a legacy `jobs.db` from the current directory. `YOURMOVE_DATA_DIR` remains available for an explicit absolute workspace override.
+
+Build a local Apple Silicon app bundle with:
+
+```sh
+scripts/build-hackathon-macos.sh /private/tmp/yourmove-hackathon-build
+open "/private/tmp/yourmove-hackathon-build/YourMove Hackathon Edition.app"
+```
+
+The browser-mode server uses port `3019` by default; `YOURMOVE_HTTP_PORT` can override it.
+
 YourMove keeps job opportunities, resumes, application preparation, and submission records in one local workspace. It reduces repeated preparation while leaving every review and submission decision with the applicant.
 
 ## What it does
