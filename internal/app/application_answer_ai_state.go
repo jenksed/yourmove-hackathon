@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"sync"
 	"time"
+
+	discovery "github.com/jenksed/yourmove-career-discovery"
 )
 
 // All mutable ticket fields belong to the registry mutex. Snapshots never change.
@@ -13,6 +15,7 @@ type answerAITicket struct {
 	active              bool
 	snapshot            answerGenerationSnapshot
 	state, answer, code string
+	trace               *discovery.AnswerTrace
 	expires             time.Time
 	cancel              context.CancelFunc
 }
@@ -58,5 +61,6 @@ func (r *answerAIRegistry) close() {
 		}
 		t.state = "canceled"
 		t.answer = ""
+		t.trace = nil
 	}
 }

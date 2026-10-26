@@ -27,6 +27,16 @@
 - **Next bounded item:** reviewed evidence → one job-specific Muse answer → answer-claim source inspection, including an unsupported qualification. Durable reject/clarify, native acceptance and ten-scenario evaluation remain essential. Voice and second-question reuse remain optional.
 - **Compliance:** inherited host is not the submission; fresh event-only engine repository is authoritative. Organizer confirmation of the disclosed preexisting demo host / additions-only patch arrangement and final judge access remain pending. Protected release repository is independent.
 
+### HACK-002 — Career Evidence to job-specific answer trace
+
+- **Priority:** P1 · **Stage:** hackathon career discovery · **Status:** IMPLEMENTED / NEEDS LIVE VERIFICATION.
+- **Architecture:** Host adapter binds a candidate-reviewed Career Evidence revision to its immutable interview response; the standalone engine validates exact evidence/revision/response identities and quoted excerpts; the browser presents the answer and trace as an unsaved candidate review.
+- **Commits:** host pending on `feat/career-discovery-b1`; engine trace validator `47717b0e12272a1c91ba56fb2c7af9b84d481a99`; one-way engine integration snapshot in the current event-engine HEAD.
+- **Implemented checks:** standalone `go test -count=1 ./...`, focused trace and answer tests, provider JSON request contract, and full host `go test -count=1 ./...` PASS. Browser reached a real Percona MySQL question and reviewed synthetic Career Evidence ID 1 revision 2.
+- **Observed blocker:** three bounded real Muse Standard calls returned output rejected by host validation, including one JSON-object-mode request. No raw response was retained and the UI exposes one generic unusable-output notice, so the exact failing validation branch is NOT VERIFIED. No generated answer was saved, adopted, or submitted.
+- **Acceptance still required:** real Muse answer appears in the browser; at least one answer claim opens the exact recorded response from the reviewed record/revision; HA, backups, implementation ownership, and unknown measured outcome remain unresolved when unsupported; candidate reviews/adopts explicitly; zero employer submissions. Native Wails and persistent reject/clarify remain separate follow-ups.
+- **Evidence:** [October 26 sprint addendum](implementation/2026-10-26-career-discovery.md); [engine integration status](../career-discovery/integration/README.md).
+
 ## PR #7 closeout — only narrowly scoped work
 
 ### YM-001 — Verify salary fallback against false positives and neighboring context

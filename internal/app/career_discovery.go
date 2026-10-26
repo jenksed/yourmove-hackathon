@@ -51,6 +51,32 @@ func (a *App) discoveryByID(id int64) (discoveryPage, error) {
 	return p, nil
 }
 
+// careerEvidenceTraceSources rebinds interview responses to the exact reviewed
+// record revision. A record without a discovery row remains usable for ordinary
+// answer drafting, but cannot advertise an interview Evidence Trace.
+func (a *App) careerEvidenceTraceSources(e CareerEvidence) ([]discovery.TraceSource, error) {
+	var raw string
+	err := a.db.QueryRow(`SELECT state FROM career_discovery WHERE evidence_id=?`, e.ID).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var state discovery.State
+	if json.Unmarshal([]byte(raw), &state) != nil || state.Proposal == nil || state.ValidateProposal() != nil || e.SourceWriting != state.Transcript() || len(state.Responses) == 0 {
+		return nil, discovery.ErrInvalid
+	}
+	sources := make([]discovery.TraceSource, 0, len(state.Responses))
+	for i, response := range state.Responses {
+		if response.Source.ID != fmt.Sprintf("response-%d", i+1) || response.Source.Kind != "self_report" || !validNarrativeText(response.Question) || !validNarrativeText(response.Source.Text) || len(response.Source.Text) > 2000 {
+			return nil, discovery.ErrInvalid
+		}
+		sources = append(sources, discovery.TraceSource{EvidenceID: e.ID, EvidenceRevision: e.Revision, ResponseID: response.Source.ID, ResponseText: response.Source.Text})
+	}
+	return sources, nil
+}
+
 func (a *App) careerDiscoveryPage(w http.ResponseWriter, r *http.Request) {
 	var p discoveryPage
 	if raw := r.PathValue("id"); raw != "" {

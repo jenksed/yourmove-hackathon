@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	discovery "github.com/jenksed/yourmove-career-discovery"
 	"github.com/jenksed/yourmove-go/internal/application/schema"
 )
 
@@ -313,6 +314,111 @@ func TestNarrativeInsufficientFailureAndSnapshotBaseline(t *testing.T) {
 				t.Fatal("saved revision changed")
 			}
 		})
+	}
+}
+
+func addDiscoveryTraceFixture(t *testing.T, a *App, evidenceID int64) {
+	t.Helper()
+	state, err := discovery.New("Provided Linux and database troubleshooting support.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Responses = []discovery.Response{{Question: "What did you find?", Source: discovery.Source{ID: "response-1", Kind: "self_report", Text: "I used EXPLAIN and found a full table scan. Another team implemented the fix, and I do not know the measured outcome."}}}
+	state.Proposal = &discovery.Proposal{Title: "MySQL query investigation", Experience: "I found a full table scan with EXPLAIN.", Claim: "I used EXPLAIN and found a full table scan.", SourceID: "response-1", Quote: "I used EXPLAIN and found a full table scan.", Unresolved: []string{"Which fix was implemented and what was the measured outcome?"}}
+	if err := state.ValidateProposal(); err != nil {
+		t.Fatal(err)
+	}
+	state.Question = "What did you hand off?"
+	raw, _ := json.Marshal(state)
+	if _, err := a.db.Exec(`INSERT INTO career_discovery(revision,state,evidence_id,created_at) VALUES(1,?,?,?)`, string(raw), evidenceID, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.db.Exec(`UPDATE career_evidence SET source_writing=?,revision=revision+1 WHERE id=?`, state.Transcript(), evidenceID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func traceModelOutput(t *testing.T, evidenceID, revision int64, responseID, quote, answer string) string {
+	t.Helper()
+	value := discovery.AnswerTrace{Answer: answer, Claims: []discovery.AnswerClaim{{Claim: "I used EXPLAIN and found a full table scan", EvidenceID: evidenceID, EvidenceRevision: revision, ResponseID: responseID, Quote: quote}}, Unresolved: []string{"The implementing team and measured performance outcome are not established."}}
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(raw)
+}
+
+func TestNarrativeCareerDiscoveryEvidenceTrace(t *testing.T) {
+	a, v, id := narrativeFixture(t)
+	addDiscoveryTraceFixture(t, a, id)
+	e, err := careerEvidenceByID(a.db, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.Set("career_evidence", fmt.Sprintf("%d:%d:%s", id, e.Revision, e.CreatedAt))
+	answer := "I used EXPLAIN and found a full table scan. Another team implemented the fix, and I do not know its measured outcome."
+	a.applicationAnswerGenerate = func(_ context.Context, prompt, instructions string) (string, error) {
+		if !strings.Contains(prompt, "interview_responses") || !strings.Contains(instructions, "answer_trace") && !strings.Contains(instructions, "response_id") {
+			return "", fmt.Errorf("trace context or policy missing")
+		}
+		return traceModelOutput(t, id, e.Revision, "response-1", "I used EXPLAIN and found a full table scan", answer), nil
+	}
+	ticket := reviewNarrative(t, a, v)
+	a.answerAI.mu.Lock()
+	snapshot := a.answerAI.tickets[ticket].snapshot
+	a.answerAI.mu.Unlock()
+	if len(snapshot.TraceSources) != 1 || snapshot.TraceSources[0].EvidenceID != id || snapshot.TraceSources[0].EvidenceRevision != e.Revision {
+		t.Fatalf("trace source binding: %#v", snapshot.TraceSources)
+	}
+	r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(ticket), "", "")
+	if r.Code != 200 || !strings.Contains(r.Body.String(), `"state":"complete"`) || !strings.Contains(r.Body.String(), `"response_id":"response-1"`) || !strings.Contains(r.Body.String(), `"quote":"I used EXPLAIN and found a full table scan"`) || !strings.Contains(r.Body.String(), `"unresolved":["The implementing team`) {
+		t.Fatalf("trace answer rejected or hidden: %d %s", r.Code, r.Body.String())
+	}
+	var count int
+	if err := a.db.QueryRow(`SELECT COUNT(*) FROM application_answers WHERE job_id=1`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("generation saved answer: count=%d err=%v", count, err)
+	}
+	if !a.validateAnswerGenerationSnapshot(snapshot) {
+		t.Fatal("trace snapshot unexpectedly stale")
+	}
+	if _, err := a.db.Exec(`UPDATE career_evidence SET revision=revision+1 WHERE id=?`, id); err != nil {
+		t.Fatal(err)
+	}
+	if a.validateAnswerGenerationSnapshot(snapshot) {
+		t.Fatal("changed reviewed evidence revision accepted")
+	}
+}
+
+func TestNarrativeCareerDiscoveryEvidenceTraceRejectsFabricatedSource(t *testing.T) {
+	a, v, id := narrativeFixture(t)
+	addDiscoveryTraceFixture(t, a, id)
+	e, err := careerEvidenceByID(a.db, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.Set("career_evidence", fmt.Sprintf("%d:%d:%s", id, e.Revision, e.CreatedAt))
+	a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) {
+		return traceModelOutput(t, id, e.Revision+1, "response-99", "I personally implemented the fix", "I personally implemented the fix."), nil
+	}
+	ticket := reviewNarrative(t, a, v)
+	r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(ticket), "", "")
+	if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"code":"output"`) {
+		t.Fatalf("fabricated trace accepted: %d %s", r.Code, r.Body.String())
+	}
+	var count int
+	if err := a.db.QueryRow(`SELECT COUNT(*) FROM application_answers WHERE job_id=1`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("rejected trace saved answer: count=%d err=%v", count, err)
+	}
+}
+
+func TestParseGeneratedAnswerTraceAcceptsSingleJSONFence(t *testing.T) {
+	raw := "```json\n{\"answer\":\"I reviewed the slow query\",\"claims\":[{\"claim\":\"I reviewed the slow query\",\"evidence_id\":1,\"evidence_revision\":2,\"response_id\":\"response-1\",\"quote\":\"I investigated a production MySQL database\"}],\"unresolved\":[\"The performance impact is unknown.\"]}\n```"
+	trace, err := parseGeneratedAnswerTrace(raw)
+	if err != nil || trace.Answer != "I reviewed the slow query" || len(trace.Claims) != 1 || trace.Claims[0].ResponseID != "response-1" || len(trace.Unresolved) != 1 {
+		t.Fatalf("trace=%#v err=%v", trace, err)
+	}
+	if _, err := parseGeneratedAnswerTrace(raw + " extra"); err == nil {
+		t.Fatal("accepted content after fenced trace")
 	}
 }
 func TestNarrativeShutdownCancelsRunningWithoutHoldingLocks(t *testing.T) {

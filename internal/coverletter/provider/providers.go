@@ -28,6 +28,7 @@ type coverBackend struct {
 	APIKey   string
 
 	metaDiscovery bool
+	jsonOutput     bool
 	observe       func(RequestMetrics)
 }
 
@@ -118,6 +119,15 @@ func (r Runner) GenerateNarrative(ctx context.Context, prompt, instructions stri
 		prompt += "\n\n" + instructions
 	}
 	return runProviderProfile(ctx, r.backend, prompt, instructions, nil, true)
+}
+
+// GenerateNarrativeJSON requests JSON object output from an OpenAI-compatible
+// endpoint for narrow workflows whose callers validate structured references.
+func (r Runner) GenerateNarrativeJSON(ctx context.Context, prompt, instructions string) (string, error) {
+	if r.backend.Provider == "compatible" {
+		r.backend.jsonOutput = true
+	}
+	return r.GenerateNarrative(ctx, prompt, instructions)
 }
 
 // ExecutionLocality describes the configured transport, never inference guarantees.
@@ -286,6 +296,8 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 		fields["max_tokens"] = 2048
 		fields["reasoning_effort"] = "low"
 		fields["response_format"] = map[string]string{"type": "json_object"}
+	} else if narrative && backend.jsonOutput && backend.Provider == "compatible" {
+		request.(map[string]any)["response_format"] = map[string]string{"type": "json_object"}
 	}
 	data, err := json.Marshal(request)
 	if err != nil {

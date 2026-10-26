@@ -1040,6 +1040,14 @@ a.progress-metric:hover span {text-decoration:underline;color:var(--color-primar
 .answer-ai .confirm-row, .answer-ai [role=status], .answer-ai p { overflow-wrap: anywhere; }
 .answer-ai .button-row { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }
 .answer-ai [data-answer-ai-preview] { margin-block: 16px; }
+.answer-ai [data-answer-ai-trace] { margin-block: 12px; max-width: 72ch; }
+.answer-ai [data-answer-ai-trace] > summary { font-weight: 650; padding-block: 6px; }
+.answer-ai [data-answer-ai-trace-claims] { padding-left: 22px; }
+.answer-ai [data-answer-ai-trace-claims] li + li { margin-top: 14px; }
+.answer-ai [data-answer-ai-trace-claims] p { margin-block: 4px; }
+.answer-ai [data-answer-ai-trace-claims] blockquote { margin: 6px 0; padding: 8px 12px; border-left: 2px solid var(--color-border); color: var(--color-muted); overflow-wrap: anywhere; }
+.answer-ai [data-answer-ai-trace-unresolved] { margin-top: 12px; }
+.answer-ai [data-answer-ai-trace-unresolved] h5 { margin-bottom: 4px; }
 
 /* A calm, question-first writing surface shared by early and live preparation. */
 .application-questions .question-heading h3,

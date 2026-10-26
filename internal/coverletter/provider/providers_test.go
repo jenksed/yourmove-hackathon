@@ -125,6 +125,26 @@ func TestCoverProviderFailureCategories(t *testing.T) {
 	}
 }
 
+func TestGenerateNarrativeJSONRequestsJSONFromCompatibleProvider(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if got := payload["response_format"].(map[string]any)["type"]; got != "json_object" {
+			t.Fatalf("response_format = %v", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"choices":[{"finish_reason":"stop","message":{"content":"{\"answer\":\"grounded\"}"}}]}`)
+	}))
+	defer server.Close()
+	runner := Runner{provider: "compatible", backend: coverBackend{Provider: "compatible", Model: "sample-model", URL: server.URL, APIKey: "test-key"}}
+	got, err := runner.GenerateNarrativeJSON(context.Background(), "synthetic evidence", "return JSON")
+	if err != nil || got != `{"answer":"grounded"}` {
+		t.Fatalf("got %q, error %v", got, err)
+	}
+}
+
 // A partial answer should not become a saved draft even when its text
 // otherwise looks plausible. Do not retry automatically or trim to fit.
 func TestCoverProviderRejectsIncompleteChatResponse(t *testing.T) {

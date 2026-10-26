@@ -1008,6 +1008,24 @@
       find('text').value = value.answer;
       find('question').textContent = value.question;
       find('reference').textContent = value.references || 'Recovered preview; server review required before use.';
+      const trace = value.trace;
+      const tracePanel = find('trace');
+      const traceClaims = find('trace-claims');
+      const traceUnknowns = find('trace-unknowns');
+      traceClaims.replaceChildren(); traceUnknowns.replaceChildren();
+      const claims = Array.isArray(trace?.claims) ? trace.claims : [];
+      claims.forEach(claim => {
+        const item = document.createElement('li');
+        const statement = document.createElement('p'); statement.textContent = claim.claim || '';
+        const identity = document.createElement('p'); identity.className = 'small-muted';
+        identity.textContent = `Career Evidence ${claim.evidence_id} · reviewed revision ${claim.evidence_revision} · original interview ${claim.response_id}`;
+        const quote = document.createElement('blockquote'); quote.textContent = claim.quote || '';
+        item.append(statement, identity, quote); traceClaims.append(item);
+      });
+      const unresolved = Array.isArray(trace?.unresolved) ? trace.unresolved : [];
+      unresolved.forEach(text => { const item = document.createElement('li'); item.textContent = text; traceUnknowns.append(item); });
+      find('trace-unresolved').hidden = unresolved.length === 0;
+      tracePanel.hidden = claims.length === 0;
       find('adopt').disabled = !matches() || String(value.revision) !== root.dataset.revision || value.question_key !== root.dataset.key || Date.parse(value.expires_at) <= Date.now() || value.adoptable === false;
       find('another').open = false;
       root.open = true;
@@ -1142,7 +1160,7 @@
     });
     find('discard').addEventListener('click', () => {
       if (preview?.ticket) api(root, 'cancel', {ticket: preview.ticket}).catch(() => {});
-      preview = null; find('text').value = ''; find('preview-payload').textContent = ''; find('preview-sources').hidden = true; find('preview').hidden = true; find('another').open = true; persist(); status('Preview discarded. Your editor is unchanged.');
+      preview = null; find('text').value = ''; find('preview-payload').textContent = ''; find('trace-claims').replaceChildren(); find('trace-unknowns').replaceChildren(); find('trace').hidden = true; find('preview-sources').hidden = true; find('preview').hidden = true; find('another').open = true; persist(); status('Preview discarded. Your editor is unchanged.');
     });
     try {
       const stored = sessionStorage.getItem(key);
