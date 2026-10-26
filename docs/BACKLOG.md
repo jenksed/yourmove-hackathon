@@ -13,7 +13,7 @@
 - Before acting, read `AGENTS.md` and relevant repository design rules. Confirm the **current** branch and clean/dirty worktree; preserve unrelated uncommitted work. Keep each change narrow and testable. Never use real applicant data or submit employer applications for a fixture.
 - On completion, update the backlog entry with status, commit/PR, tests, and remaining follow-ups. A Go/Chromium PASS does not turn a native Wails NOT VERIFIED into a PASS. Keep completed items briefly as history or move them to a dated archive after updating links.
 
-## PR #7 closeout — only narrowly scoped work
+## Hackathon Career Discovery — independent execution
 
 <!-- Hackathon checkpoint is independent of the inherited release backlog below. -->
 
@@ -26,6 +26,8 @@
 - **Evidence / handoff:** [October 26 checkpoint](implementation/2026-10-26-career-discovery.md), with the fresh repository's detailed assessment, metrics, screenshots, compliance checklist and schedule.
 - **Next bounded item:** reviewed evidence → one job-specific Muse answer → answer-claim source inspection, including an unsupported qualification. Durable reject/clarify, native acceptance and ten-scenario evaluation remain essential. Voice and second-question reuse remain optional.
 - **Compliance:** inherited host is not the submission; fresh event-only engine repository is authoritative. Organizer confirmation of the disclosed preexisting demo host / additions-only patch arrangement and final judge access remain pending. Protected release repository is independent.
+
+## PR #7 closeout — only narrowly scoped work
 
 ### YM-001 — Verify salary fallback against false positives and neighboring context
 - **Priority:** P1 · **Stage:** PR closeout · **Status:** DONE
