@@ -1,25 +1,33 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f7f4"><title>AI connections · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head>
-<body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f7f4"><title>AI connections · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
 {{template "shell-open" "ai"}}
-<div class="ai-hub">
-  <header class="page-heading ai-hub-header">
-    <div><h1>AI connections</h1><p class="page-description">Optional assistance for answers and cover letters. Manual writing and preparation remain available without AI.</p></div>
-    <a href="/jobs" class="button button-secondary">Back to opportunities →</a>
-  </header>
-  <div class="ai-mode-heading"><h2>Available connections</h2><span class="ai-muted-inline">Configuration at page load; access checked during generation</span></div>
-  <section aria-labelledby="local-ai-heading"><h2 id="local-ai-heading">On this device</h2><div class="ai-connection-grid">{{range .Connections}}{{if eq .ID "ollama"}}{{template "ai-connection" .}}{{end}}{{end}}</div></section>
-  <section aria-labelledby="external-ai-heading"><h2 id="external-ai-heading">External services and custom endpoints</h2><p class="small-muted">Custom endpoints may be local or external, depending on your configuration.</p><div class="ai-connection-grid">{{range .Connections}}{{if ne .ID "ollama"}}{{template "ai-connection" .}}{{end}}{{end}}</div></section>
-  <div class="ai-hub-footer"><h2>Review sources → Authorize generation → Review proposal → Adopt → Save</h2><p>Answer proposals stay unsaved until you adopt and explicitly save them. Cover-letter generation creates a separate local draft for review.</p><p>YourMove builds one prompt from your saved job description, master resume, and chosen role resume. Generation only starts when you approve it. Cloud and subscription-backed options send that evidence off-device; Ollama runs locally. Existing drafts are never replaced automatically.</p><p>CLI integrations use your separately installed, unmodified vendor tools. A detected login is not a guarantee of remaining subscription allowance. API keys and usage are separate from ChatGPT and Claude subscriptions. Claude subscription use in a distributed third-party product may require additional permission.</p></div>
+<div class="ai-hub ai-connections-page">
+  <header class="page-heading"><div><h1>AI connections</h1><p class="page-description">Choose a service for discovery or writing. Access is checked when you generate.</p></div></header>
+  <section aria-labelledby="meta-ai-heading">
+    <h2 id="meta-ai-heading">Meta</h2>
+    {{range .Connections}}{{if eq .ID "meta"}}
+    <article class="ai-connection-card ai-meta-connection" id="connection-meta">
+      <div class="ai-connection-top"><h3>{{.Name}}</h3><span class="ai-state ai-state-{{.State}}">{{if eq .State "ready"}}Key available{{else}}Key needed{{end}}</span></div>
+      <p class="ai-connection-access">{{.Access}}</p><p>{{.Detail}}</p>
+      <p class="small-muted">Interview excerpts and responses go to Meta after you authorize each request. Standard mode does not contribute content for model training.</p>
+      <details class="ai-connection-setup" {{if ne .State "ready"}}open{{end}}><summary>Key and model settings</summary><p>{{.Setup}}</p><dl class="ai-meta-settings"><dt>Credential</dt><dd><code>MODEL_API_KEY</code></dd><dt>Model</dt><dd><code>{{.Model}}</code></dd></dl><p>Contributor mode is available in the separate synthetic-data development runner. Meta may use Contributor content for training; keep candidate information in standard mode.</p></details>
+      <p><a class="button button-primary" href="/career-discovery">Open Career Discovery →</a></p>
+    </article>
+    {{end}}{{end}}
+  </section>
+  <section aria-labelledby="external-ai-heading" class="ai-other-connections">
+    <h2 id="external-ai-heading">Other services</h2>
+    <details class="ai-service-group"><summary>API services <span>OpenAI, Anthropic, OpenRouter, custom endpoints</span></summary><div class="ai-connection-grid">{{range .Connections}}{{if or (eq .ID "openai") (eq .ID "anthropic") (eq .ID "openrouter") (eq .ID "compatible")}}{{template "ai-connection" .}}{{end}}{{end}}</div></details>
+    <details class="ai-service-group"><summary>Subscription tools <span>ChatGPT via Codex, Claude Code</span></summary><p class="small-muted">Use separately installed vendor tools and their own sign-in. Subscription allowance is separate from API billing; a detected login does not guarantee available usage.</p><div class="ai-connection-grid">{{range .Connections}}{{if or (eq .ID "codex") (eq .ID "claude-cli")}}{{template "ai-connection" .}}{{end}}{{end}}</div><p class="small-muted">Claude subscription use in a distributed third-party product may require additional permission.</p></details>
+  </section>
+  <section aria-labelledby="local-ai-heading"><details class="ai-service-group"><summary id="local-ai-heading">Ollama <span>Local service or cloud-backed models</span></summary><div class="ai-connection-grid">{{range .Connections}}{{if eq .ID "ollama"}}{{template "ai-connection" .}}{{end}}{{end}}</div><p class="small-muted">A local Ollama connection can forward to cloud inference, depending on the model.</p></details></section>
+  <footer class="ai-hub-footer"><p>Generation requires your authorization. Review AI proposals before using them. Answer proposals must be adopted and saved; cover letters are saved as separate drafts. YourMove does not replace existing drafts automatically.</p><p>Manual writing and preparation remain available without AI.</p></footer>
 </div>
-{{template "shell-close"}}
-</body></html>
+{{template "shell-close" .}}</body></html>
 
 {{define "ai-connection"}}
-    <article class="ai-connection-card" id="connection-{{.ID}}">
-      <div class="ai-connection-top"><h3>{{.Name}}</h3><span class="ai-state ai-state-{{.State}}">{{if eq .State "ready"}}Configured{{else if eq .State "signin"}}Sign in{{else if eq .State "unavailable"}}Not installed{{else}}Setup needed{{end}}</span></div>
-      <p class="ai-connection-access">{{if eq .ID "ollama"}}{{else if ne .ID "compatible"}}External service · {{end}}{{.Access}}</p>
-      <p class="ai-connection-detail">{{.Detail}}</p>
-      <details class="ai-connection-setup"><summary>Setup guidance</summary><p>{{.Setup}}</p></details>
-    </article>
+<article class="ai-connection-card" id="connection-{{.ID}}">
+  <div class="ai-connection-top"><h3>{{.Name}}</h3><span class="ai-state ai-state-{{.State}}">{{if eq .State "ready"}}Configured{{else if eq .State "signin"}}Sign in needed{{else if eq .State "unavailable"}}Not installed{{else}}Setup needed{{end}}</span></div>
+  <p class="ai-connection-access">{{.Access}}</p><p class="ai-connection-detail">{{.Detail}}</p><details class="ai-connection-setup"><summary>Setup</summary><p>{{.Setup}}</p></details>
+</article>
 {{end}}

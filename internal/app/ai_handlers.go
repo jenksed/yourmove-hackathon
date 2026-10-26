@@ -16,6 +16,7 @@ type aiConnectionsPage struct{ Connections []aiConnection }
 // render API keys, persist credentials, contact a model, or start sign-in.
 func (a *App) aiConnectionsPage(w http.ResponseWriter, r *http.Request) {
 	sources := []aiConnection{
+		{ID: "meta", Name: "Muse Spark 1.3", Access: "Career Discovery · Standard mode", Setup: "Set MODEL_API_KEY in the launch environment and restart YourMove. For the development launcher, the key can be kept in the ignored .env file. YourMove never displays or saves the key here.", Model: "muse-spark-1.3"},
 		{ID: "codex", Name: "ChatGPT via Codex", Access: "Subscription CLI", Setup: "Install Codex, then run codex login and choose ChatGPT.", Model: "default"},
 		{ID: "claude-cli", Name: "Claude via Claude Code", Access: "Subscription CLI", Setup: "Install Claude Code, run claude, and sign in with Claude.ai (not Console).", Model: "sonnet"},
 		{ID: "ollama", Name: "Ollama", Access: "On-device", Setup: "Start Ollama, run ollama list, then choose an installed model.", Model: coverprovider.DefaultModel("ollama")},
@@ -27,6 +28,12 @@ func (a *App) aiConnectionsPage(w http.ResponseWriter, r *http.Request) {
 	for i := range sources {
 		s := &sources[i]
 		switch s.ID {
+		case "meta":
+			if _, err := coverprovider.ConfigureMeta(); err == nil {
+				s.State, s.Detail = "ready", "Key available in this session. Access and credits are checked when you generate."
+			} else {
+				s.State, s.Detail = "setup", "Add MODEL_API_KEY to start a Muse interview."
+			}
 		case "codex", "claude-cli":
 			s.State, s.Detail = coverprovider.SubscriptionReadiness(s.ID)
 		case "ollama":

@@ -1259,6 +1259,18 @@ h1,.job-hero h1 {font-size:28px;line-height:1.2;margin-bottom:8px}
 .writing-destination .question-heading {justify-content:flex-end;margin-bottom:8px}
 .ai-connection-card p {font-weight:400}
 
+/* AI Connections: Meta leads; other setup stays grouped and discoverable. */
+.ai-connections-page {max-width:780px}
+.ai-connections-page h2 {font-size:18px;margin:22px 0 0}
+.ai-meta-connection {padding-top:14px}
+.ai-meta-connection>p {max-width:70ch}
+.ai-meta-settings {display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;margin:14px 0}
+.ai-meta-settings dt {font-weight:600}
+.ai-meta-settings dd {margin:0;overflow-wrap:anywhere}
+.ai-service-group {border-bottom:1px solid var(--color-border);padding:16px 0}
+.ai-service-group>summary {cursor:pointer;font-weight:600;line-height:1.6}
+.ai-service-group>summary span {display:block;margin-left:18px;font-size:13px;font-weight:400;color:var(--color-muted)}
+
 @media(min-width:820px){.sidebar{overflow-y:auto}.sidebar-bottom{flex-shrink:0}}
 
 /* Recovery leads with its one action; prior observations are secondary. */
