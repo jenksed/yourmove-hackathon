@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Career Roles · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
+{{template "shell-open" "career-evidence"}}
+<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/career-evidence">Career Evidence</a><span aria-hidden="true">/</span><span>Role intelligence</span></nav>
+<div class="page-heading"><div><h1>One history, two roles</h1><p class="page-description">The same approved experiences, read against different requirements. Muse selects and explains; you decide what to use. Nothing here rewrites your evidence.</p></div></div>
+{{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
+{{if not .Evidences}}
+<section><h2>No reviewed evidence yet</h2><p class="small-muted">Review at least one Career Evidence record before comparing roles. Review means you confirmed the record represents you.</p><p><a class="button button-primary" href="/career-evidence">Go to Career Evidence</a> <a class="button button-secondary" href="/career-discovery">Investigate an experience</a></p></section>
+{{else}}
+<section class="role-evidence-note"><h2>Approved history under comparison</h2><ul>{{range .Evidences}}<li><a href="/career-evidence/{{.ID}}">{{.Title}}</a> <span class="small-muted">revision {{.Revision}} · reviewed · outcome: {{.OutcomeState}}</span></li>{{end}}</ul>
+<p class="small-muted">Same records feed both analyses. A new approval or correction changes this set; re-run a comparison to refresh it.</p></section>
+<div class="investigator">
+  {{range .Roles}}
+  <article class="role-column">
+    <p class="investigator-tag">{{.Role.Title}}</p>
+    <h2>{{.Role.Title}}</h2>
+    <p>{{.Role.Focus}}</p>
+    {{if .Analysis}}
+      {{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
+      <h3>Relevant experiences</h3>
+      {{range .Analysis.Items}}{{if .Relevant}}
+      <section class="story-card"><h4>{{$.EvidenceTitle .EvidenceID}} · supports this role</h4>
+        <p>{{.Explanation}}</p>
+        {{if .Capabilities}}<h4>Supported for this role</h4><ul>{{range .Capabilities}}<li>{{.}}</li>{{end}}</ul>{{end}}
+        {{if .Gaps}}<h4>Still unresolved</h4><ul>{{range .Gaps}}<li>{{.}}</li>{{end}}</ul>{{end}}
+        <p><a href="/career-evidence/{{.EvidenceID}}">Inspect supporting evidence · revision {{.EvidenceRevision}}</a></p>
+      </section>
+      {{end}}{{end}}
+      <h3>Not supported by this history</h3>
+      <ul>{{range .Analysis.Items}}{{if not .Relevant}}<li>Experience {{.EvidenceID}}: {{.Explanation}}</li>{{end}}{{end}}
+      {{range .Analysis.Unmet}}<li>{{.}} — no approved experience supports this yet.</li>{{end}}</ul>
+      {{if not .Analysis.Unmet}}<p class="small-muted">Every listed requirement found some support. Treat the explanations above as the boundary.</p>{{end}}
+    {{else}}
+      <p class="small-muted">No comparison saved for this evidence set yet.</p>
+    {{end}}
+    <form method="POST" action="/career-roles/{{.Role.Key}}/analyze"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send {{len $.Evidences}} reviewed record(s) and this role profile to Meta for one comparison (muse-spark-1.3, standard mode).</span></label><button class="button button-primary" type="submit">{{if .Analysis}}Re-run comparison{{else}}Compare this role{{end}}</button></form>
+    {{if .Job}}
+      <h3>Application materials</h3>
+      <p><a class="button button-secondary" href="/jobs/{{.Job.ID}}#prepare">Open opportunity: {{.Job.Title}}</a></p>
+      {{if .Flags}}<h4>Saved answers and their evidence basis</h4><ul>{{range .Flags}}<li><strong>{{.Label}}</strong> — {{.State}}: {{.Detail}}</li>{{end}}</ul>{{else}}<p class="small-muted">No saved answers yet. Generate one from the opportunity page; its evidence basis will be recorded here.</p>{{end}}
+      <p class="small-muted">Selected résumé, evidence-grounded answers, and cover letter live on the opportunity page. Drafts stay drafts until you act; nothing is submitted from here.</p>
+    {{else}}
+      <h3>Application materials</h3>
+      <form method="POST" action="/career-roles/{{.Role.Key}}/opportunity"><button class="button button-secondary" type="submit">Create local demo opportunity</button></form>
+      <p class="small-muted">Creates a synthetic opportunity record in your workspace so answers and letters have a home. Demonstration only; never submitted.</p>
+    {{end}}
+  </article>
+  {{end}}
+</div>
+{{end}}
+{{template "shell-close" .}}</body></html>

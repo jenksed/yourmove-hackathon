@@ -1384,3 +1384,7 @@ form[data-dirty="true"] [data-answer-status] {color:var(--color-dirty);font-weig
 .investigator .evidence-text{white-space:pre-wrap;overflow-wrap:anywhere}
 .explore-form .button{white-space:normal;text-align:left}
 .investigator-start,.lead-card{min-width:0}
+.role-column{border:1px solid var(--color-border);border-radius:10px;padding:22px;background:var(--color-surface);min-width:0}
+.role-column .story-card{margin:0 0 14px}
+.investigator-tag{font-size:13px;font-weight:650;color:var(--color-muted)}
+.role-evidence-note{max-width:780px}

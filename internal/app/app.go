@@ -42,6 +42,7 @@ type appResources struct {
 	answerLibraryTemplate         *template.Template
 	careerEvidenceTemplate        *template.Template
 	careerDiscoveryTemplate       *template.Template
+	careerRolesTemplate           *template.Template
 }
 
 // New parses each page with the shared partials once, before serving requests.
@@ -73,6 +74,7 @@ func New(config Config) (*App, error) {
 		{"templates/answer_library.html", &resources.answerLibraryTemplate},
 		{"templates/career_evidence.html", &resources.careerEvidenceTemplate},
 		{"templates/career_discovery.html", &resources.careerDiscoveryTemplate},
+		{"templates/career_roles.html", &resources.careerRolesTemplate},
 	} {
 		parsed, err := template.New(strings.TrimPrefix(page.path, "templates/")).Funcs(template.FuncMap{"humanDate": humanDate}).ParseFS(config.TemplateFiles, page.path, "templates/partials.html")
 		if err != nil {
@@ -85,6 +87,12 @@ func New(config Config) (*App, error) {
 	}
 	if err := initializeDiscovery(config.DB); err != nil {
 		return nil, fmt.Errorf("initialize Career Discovery: %w", err)
+	}
+	if err := initializeRoleAnalyses(config.DB); err != nil {
+		return nil, fmt.Errorf("initialize role analyses: %w", err)
+	}
+	if err := initializeAnswerProvenance(config.DB); err != nil {
+		return nil, fmt.Errorf("initialize answer provenance: %w", err)
 	}
 	return &App{
 		db: config.DB, resumeDir: config.ResumeDir, resources: resources,
