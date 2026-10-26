@@ -19,7 +19,10 @@ func TestDiscoveryConsentSourcesReviewAndRestart(t *testing.T) {
 	calls := 0
 	a.discoveryGenerate = func(_ context.Context, prompt, policy string) (string, error) {
 		calls++
-		if calls == 1 {
+		if strings.Contains(policy, "investigation leads") {
+			return `{"leads":[{"id":"lead-1","title":"Database investigation","why":"May reveal diagnosis method"},{"id":"lead-2","title":"Customer support work","why":"May reveal collaboration"},{"id":"lead-3","title":"Linux troubleshooting","why":"May reveal technical method"}]}`, nil
+		}
+		if calls == 2 {
 			return `{"question":"What did you personally do during the database investigation?","proposal":null}`, nil
 		}
 		if !strings.Contains(prompt, "Another team implemented") {
@@ -36,18 +39,25 @@ func TestDiscoveryConsentSourcesReviewAndRestart(t *testing.T) {
 		t.Fatal(got.Code, got.Body.String())
 	}
 	p, err := a.discoveryByID(1)
-	if err != nil || p.State.Question == "" {
+	if err != nil || len(p.State.Leads) != 3 || p.State.Question != "" {
+		t.Fatal(p, err)
+	}
+	if got := postCareerEvidence(mux, "/career-discovery/1/select", url.Values{"revision": {"2"}, "lead_id": {"lead-1"}, "consent": {"yes"}}); got.Code != 303 {
+		t.Fatal(got.Code, got.Body.String())
+	}
+	p, err = a.discoveryByID(1)
+	if err != nil || p.State.Question == "" || p.State.SelectedLeadID != "lead-1" {
 		t.Fatal(p, err)
 	}
 	answer := "I reviewed MySQL slow query logs and used EXPLAIN. Another team implemented the changes."
-	values = url.Values{"revision": {"2"}, "answer": {answer}, "consent": {"yes"}}
+	values = url.Values{"revision": {"4"}, "answer": {answer}, "consent": {"yes"}}
 	if got := postCareerEvidence(mux, "/career-discovery/1/next", values); got.Code != 303 {
 		t.Fatal(got.Code, got.Body.String())
 	}
-	if got := postCareerEvidence(mux, "/career-discovery/1/next", values); got.Code != 409 || calls != 2 {
+	if got := postCareerEvidence(mux, "/career-discovery/1/next", values); got.Code != 409 || calls != 3 {
 		t.Fatal("stale response generated again")
 	}
-	if got := postCareerEvidence(mux, "/career-discovery/1/evidence", url.Values{"revision": {"4"}}); got.Code != 303 {
+	if got := postCareerEvidence(mux, "/career-discovery/1/evidence", url.Values{"revision": {"6"}}); got.Code != 303 {
 		t.Fatal(got.Code, got.Body.String())
 	}
 	e, err := careerEvidenceByID(a.db, 1)
@@ -91,12 +101,16 @@ func TestDiscoveryConsentSourcesReviewAndRestart(t *testing.T) {
 func TestDiscoveryFailureRetainsCandidateInput(t *testing.T) {
 	a, _ := testWorkspace(t)
 	mux := newMux(a)
-	a.discoveryGenerate = func(context.Context, string, string) (string, error) {
+	a.discoveryGenerate = func(_ context.Context, _, policy string) (string, error) {
+		if strings.Contains(policy, "investigation leads") {
+			return `{"leads":[{"id":"lead-1","title":"Database work","why":"May reveal method"},{"id":"lead-2","title":"Customer work","why":"May reveal collaboration"},{"id":"lead-3","title":"Linux work","why":"May reveal diagnosis"}]}`, nil
+		}
 		return `{"question":"What did you investigate?","proposal":null}`, nil
 	}
 	postCareerEvidence(mux, "/career-discovery", url.Values{"resume": {"Database support"}, "consent": {"yes"}})
+	postCareerEvidence(mux, "/career-discovery/1/select", url.Values{"revision": {"2"}, "lead_id": {"lead-1"}, "consent": {"yes"}})
 	a.discoveryGenerate = func(context.Context, string, string) (string, error) { return "", errors.New("provider unavailable") }
-	postCareerEvidence(mux, "/career-discovery/1/next", url.Values{"revision": {"2"}, "answer": {"I reviewed logs but did not implement the fix."}, "consent": {"yes"}})
+	postCareerEvidence(mux, "/career-discovery/1/next", url.Values{"revision": {"4"}, "answer": {"I reviewed logs but did not implement the fix."}, "consent": {"yes"}})
 	p, err := a.discoveryByID(1)
 	if err != nil || len(p.State.Responses) != 1 || p.State.Question != "" || p.State.Proposal != nil || !strings.Contains(p.Notice, "input is saved") {
 		t.Fatal(p, err)

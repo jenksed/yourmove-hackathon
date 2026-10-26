@@ -26,7 +26,7 @@ func TestMetaDiscoveryCompatibleRequestAndMetrics(t *testing.T) {
 		if json.NewDecoder(r.Body).Decode(&body) != nil {
 			t.Fatal("invalid request")
 		}
-		if body["reasoning_effort"] != "low" || body["max_tokens"] != float64(2048) || body["response_format"].(map[string]any)["type"] != "json_object" {
+		if body["reasoning_effort"] != "low" || body["max_tokens"] != float64(3072) || body["response_format"].(map[string]any)["type"] != "json_object" {
 			t.Error("unbounded or invalid Muse structured request")
 		}
 		fmt.Fprint(w, `{"choices":[{"finish_reason":"stop","message":{"content":"{\"question\":\"What did you do?\",\"proposal\":null}"}}],"usage":{"prompt_tokens":400,"completion_tokens":1400,"prompt_tokens_details":{"cached_tokens":100}}}`)

@@ -1358,3 +1358,29 @@ form[data-dirty="true"] [data-answer-status] {color:var(--color-dirty);font-weig
 .dashboard-next {background:var(--color-surface);min-height:88px;padding-block:12px}
 
 @media(max-width:560px){.profile-fields {grid-template-columns:minmax(0,1fr)}}
+
+/* Career Discovery investigator */
+.investigator{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start;max-width:1180px}
+.investigator-main{min-width:0;max-width:780px}
+.investigator-aside{border-left:1px solid var(--color-border);padding-left:22px;display:grid;gap:22px}
+.investigator-aside h2{font-size:15px;margin:0 0 8px}
+.lead-list{display:grid;gap:14px}
+.lead-card{border:1px solid var(--color-border);border-radius:10px;padding:18px;background:var(--color-surface)}
+.lead-card h3{margin:0 0 6px;font-size:16px}
+.lead-card .button{margin-top:10px}
+.question-card{margin-top:8px}
+.question-text{font-size:22px;line-height:1.4;font-weight:650;max-width:34em}
+.story-kicker,.investigator-focus{font-size:13px;font-weight:650;color:var(--color-muted)}
+.story-card{border:1px solid var(--color-border);border-radius:10px;padding:20px;background:var(--color-primary-soft);margin-bottom:24px}
+.story-body{font-size:15px;line-height:1.65}
+.learned-list{padding-left:18px;display:grid;gap:14px}
+.learned-q{font-weight:650}
+.aside-leads{padding-left:18px}
+.explore-form{margin:10px 0;display:grid;gap:6px}
+.investigator-start{max-width:780px}
+@media(max-width:900px){.investigator{grid-template-columns:1fr}.investigator-aside{border-left:0;border-top:1px solid var(--color-border);padding:18px 0 0}.investigator-main{order:1}.investigator-aside{order:2}}
+.investigator-aside,.investigator-aside section{min-width:0}
+.learned-list p,.story-body{overflow-wrap:break-word}
+.investigator .evidence-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.explore-form .button{white-space:normal;text-align:left}
+.investigator-start,.lead-card{min-width:0}

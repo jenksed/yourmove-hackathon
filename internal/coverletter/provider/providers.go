@@ -306,7 +306,9 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 	}
 	if backend.metaDiscovery {
 		fields := request.(map[string]any)
-		fields["max_tokens"] = 2048
+		// Proposal-bearing turns exhausted 2048 (finish=length) in live
+		// Standard and Contributor runs; discovery gets a larger budget.
+		fields["max_tokens"] = 3072
 		fields["reasoning_effort"] = "low"
 		fields["response_format"] = map[string]string{"type": "json_object"}
 	} else if narrative && backend.jsonOutput && backend.Provider == "compatible" {

@@ -36,6 +36,13 @@ type discoverySessionLink struct {
 	CreatedAt string
 }
 
+func (p discoveryPage) NeedsLeads() bool {
+	return p.ID != 0 && p.EvidenceID == 0 && len(p.State.Leads) == 0 && len(p.State.Responses) == 0 && p.State.Question == ""
+}
+func (p discoveryPage) LeadPicker() bool {
+	return len(p.State.Leads) > 0 && p.State.SelectedLeadID == "" && len(p.State.Responses) == 0
+}
+
 func (a *App) discoveryByID(id int64) (discoveryPage, error) {
 	var p discoveryPage
 	var raw string
@@ -160,11 +167,177 @@ func (a *App) startCareerDiscovery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := discoveryPage{ID: id, Revision: 1, State: s}
-	if err := a.runDiscovery(r.Context(), p); err != nil {
+	if err := a.runLeads(r.Context(), p); err != nil {
 		http.Error(w, fmt.Sprintf("Interview input saved, but the model result could not be saved. Return to /career-discovery/%d to recover it.", id), 500)
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/career-discovery/%d", id), http.StatusSeeOther)
+}
+
+func (a *App) discoveryRunner() (discovery.Generate, *coverprovider.RequestMetrics, error) {
+	if a.discoveryGenerate != nil {
+		return a.discoveryGenerate, &coverprovider.RequestMetrics{}, nil
+	}
+	runner, err := coverprovider.ConfigureMeta()
+	if err != nil {
+		return nil, &coverprovider.RequestMetrics{}, err
+	}
+	metrics := &coverprovider.RequestMetrics{}
+	gen := func(ctx context.Context, prompt, instructions string) (string, error) {
+		return runner.GenerateDiscovery(ctx, prompt, instructions, func(m coverprovider.RequestMetrics) { *metrics = m })
+	}
+	return gen, metrics, nil
+}
+
+func (a *App) runLeads(ctx context.Context, p discoveryPage) error {
+	generate, metrics, err := a.discoveryRunner()
+	next := p.State
+	if err == nil {
+		var leads []discovery.Lead
+		leads, err = discovery.FindLeads(ctx, generate, p.State.Resume.Text)
+		if err == nil {
+			next.Leads = leads
+		}
+	}
+	notice := "Muse identified investigation leads. Choose one to explore, or start a new excerpt."
+	if err != nil {
+		notice = "Muse could not identify leads (" + coverprovider.ErrorNotice(err) + "). Your excerpt is saved; retry below. Nothing was approved."
+		if errors.Is(err, discovery.ErrInvalid) {
+			notice = "Muse output did not pass lead checks. Your excerpt is saved; retry below. Nothing was approved."
+		}
+	}
+	if metrics.PromptTokens > 0 || metrics.CompletionTokens > 0 {
+		cached := min(metrics.CachedTokens, metrics.PromptTokens)
+		cost := (float64(metrics.PromptTokens-cached)*1.25 + float64(cached)*0.15 + float64(metrics.CompletionTokens)*4.25) / 1e6
+		notice += fmt.Sprintf(" Tokens: %d input / %d output; estimated inference $%.5f.", metrics.PromptTokens, metrics.CompletionTokens, cost)
+	}
+	raw, _ := json.Marshal(next)
+	result, err := a.db.Exec(`UPDATE career_discovery SET state=?,notice=?,revision=revision+1 WHERE id=? AND revision=? AND evidence_id=0`, string(raw), notice, p.ID, p.Revision)
+	if err != nil {
+		return err
+	}
+	n, _ := result.RowsAffected()
+	if n != 1 {
+		return ErrCareerEvidenceStale
+	}
+	return nil
+}
+
+func (a *App) retryCareerLeads(w http.ResponseWriter, r *http.Request) {
+	if !discoveryConsent(w, r) {
+		return
+	}
+	if !a.discoveryMu.TryLock() {
+		http.Error(w, "A Muse interview request is already in progress. Wait before retrying.", http.StatusConflict)
+		return
+	}
+	defer a.discoveryMu.Unlock()
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	p, err := a.discoveryByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	revision, err := parseCareerEvidenceRevision(r)
+	if err != nil || revision != p.Revision || p.EvidenceID != 0 || len(p.State.Leads) > 0 {
+		http.Error(w, "Interview changed. Reload before continuing.", 409)
+		return
+	}
+	if err := a.runLeads(r.Context(), p); err != nil {
+		http.Error(w, "Unable to save leads.", 500)
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/career-discovery/%d", id), http.StatusSeeOther)
+}
+
+func (a *App) selectCareerLead(w http.ResponseWriter, r *http.Request) {
+	if !discoveryConsent(w, r) {
+		return
+	}
+	if !a.discoveryMu.TryLock() {
+		http.Error(w, "A Muse interview request is already in progress. Wait before retrying.", http.StatusConflict)
+		return
+	}
+	defer a.discoveryMu.Unlock()
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	p, err := a.discoveryByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	revision, err := parseCareerEvidenceRevision(r)
+	if err != nil || revision != p.Revision || p.EvidenceID != 0 {
+		http.Error(w, "Interview changed. Reload before continuing.", 409)
+		return
+	}
+	p.State, err = discovery.SelectLead(p.State, r.PostForm.Get("lead_id"))
+	if err != nil {
+		http.Error(w, "Choose a listed lead before responses begin.", 422)
+		return
+	}
+	raw, _ := json.Marshal(p.State)
+	result, err := a.db.Exec(`UPDATE career_discovery SET state=?,notice='Request in progress. If interrupted, retry from this page.',revision=revision+1 WHERE id=? AND revision=? AND evidence_id=0`, string(raw), id, p.Revision)
+	if err != nil {
+		http.Error(w, "Unable to save selection", 500)
+		return
+	}
+	if n, _ := result.RowsAffected(); n != 1 {
+		http.Error(w, "Interview changed. Reload before continuing.", 409)
+		return
+	}
+	p.Revision++
+	if err := a.runDiscovery(r.Context(), p); err != nil {
+		http.Error(w, "Your selection is saved, but the model result could not be saved. Reload the interview.", 500)
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/career-discovery/%d", id), http.StatusSeeOther)
+}
+
+// exploreCareerLead starts a fresh focused session for another lead, keeping
+// the original session and any linked evidence untouched.
+func (a *App) exploreCareerLead(w http.ResponseWriter, r *http.Request) {
+	if !discoveryConsent(w, r) {
+		return
+	}
+	if !a.discoveryMu.TryLock() {
+		http.Error(w, "A Muse interview request is already in progress. Wait before retrying.", http.StatusConflict)
+		return
+	}
+	defer a.discoveryMu.Unlock()
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	p, err := a.discoveryByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := parseCareerEvidenceRevision(r); err != nil {
+		http.Error(w, "Reload before continuing.", 409)
+		return
+	}
+	fresh, err := discovery.New(p.State.Resume.Text)
+	if err != nil {
+		http.Error(w, "Saved excerpt is no longer valid.", 422)
+		return
+	}
+	fresh.Leads = p.State.Leads
+	fresh, err = discovery.SelectLead(fresh, r.PostForm.Get("lead_id"))
+	if err != nil {
+		http.Error(w, "Choose a listed lead.", 422)
+		return
+	}
+	raw, _ := json.Marshal(fresh)
+	result, err := a.db.Exec(`INSERT INTO career_discovery(state,created_at) VALUES(?,?)`, string(raw), time.Now().UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		http.Error(w, "Unable to save interview", 500)
+		return
+	}
+	newID, _ := result.LastInsertId()
+	np := discoveryPage{ID: newID, Revision: 1, State: fresh}
+	if err := a.runDiscovery(r.Context(), np); err != nil {
+		http.Error(w, fmt.Sprintf("Interview saved, but the model result could not be saved. Return to /career-discovery/%d to recover it.", newID), 500)
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/career-discovery/%d", newID), http.StatusSeeOther)
 }
 
 func (a *App) nextCareerDiscovery(w http.ResponseWriter, r *http.Request) {
