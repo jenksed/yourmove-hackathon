@@ -15,6 +15,18 @@
 
 ## PR #7 closeout — only narrowly scoped work
 
+<!-- Hackathon checkpoint is independent of the inherited release backlog below. -->
+
+### HACK-001 — Muse Career Discovery first vertical slice
+
+- **Priority:** P1 · **Stage:** hackathon B1 · **Status:** DONE for browser-hosted scope; native acceptance remains OPEN.
+- **Commits:** host `2465d18`; event-only engine `1858750f32d466852c9c7ffdf64e37387cd50813`; owner-requested AI Connections refinement `e753a0e`.
+- **Observed:** real synthetic Muse interview, incident-specific follow-up, source-linked proposal, existing editable evidence draft, explicit candidate review, process restart and retained source. Standalone Contributor CLI also exercised live. No job application submitted.
+- **Checks:** complete ordinary/desktop-tagged Go suites and module tests PASS; native build/signature verification PASS. New workflow native/narrow acceptance NOT VERIFIED.
+- **Evidence / handoff:** [October 26 checkpoint](implementation/2026-10-26-career-discovery.md), with the fresh repository's detailed assessment, metrics, screenshots, compliance checklist and schedule.
+- **Next bounded item:** reviewed evidence → one job-specific Muse answer → answer-claim source inspection, including an unsupported qualification. Durable reject/clarify, native acceptance and ten-scenario evaluation remain essential. Voice and second-question reuse remain optional.
+- **Compliance:** inherited host is not the submission; fresh event-only engine repository is authoritative. Organizer confirmation of the disclosed preexisting demo host / additions-only patch arrangement and final judge access remain pending. Protected release repository is independent.
+
 ### YM-001 — Verify salary fallback against false positives and neighboring context
 - **Priority:** P1 · **Stage:** PR closeout · **Status:** DONE
 - **Source:** `internal/platforms/compensation.go`, `internal/platforms/compensation_test.go`; fix commit `799528e`.
