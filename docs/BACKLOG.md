@@ -16,6 +16,7 @@
 ## Hackathon Career Discovery — independent execution
 
 <!-- Hackathon checkpoint is independent of the inherited release backlog below. -->
+<!-- Competition direction: [hackathon roadmap](hackathon/ROADMAP.md) (Oct 26–Nov 4, freeze Nov 2). HACK entries below reconcile against its pillars and scorecard; the roadmap states ambition, these entries record implemented or actionable work. -->
 
 ### HACK-001 — Muse Career Discovery first vertical slice
 
@@ -310,3 +311,11 @@ Evidence: the local finalization review archive contains `EXECUTIVE_REVIEW.md`, 
 - **Live:** 5 synthetic bullets → 5 Standard-mode leads in-app; adaptive follow-ups referenced the outage/full-table-scan/handoff; source-valid proposal created Career Evidence draft; leads and statements survived server restart; explore opened a focused shell-script investigation. Contributor benchmark: 4–5 leads/run, adaptive Q2/Q3, source-valid proposal, unknowns preserved. ~8 calls total, avg ~9s, 1 length failure in 8.
 - **Checks:** engine `go test ./...` PASS; host full `go test ./...` PASS; wide screenshot inspected; narrow screenshot matches pre-existing shell clipping (not a regression). Native Wails NOT VERIFIED.
 - **Remaining:** cross-role relevance (TSE vs TAM), answer-artifact staleness, correction-respect eval set, lead quality (titles still echo bullets), Standard-mode final smoke, Nov 2 demo script.
+
+### HACK-005 — Role intelligence, activation, correction impact (maps to roadmap P3/P4/P5, schedule Oct 30–Nov 1)
+
+- **Priority:** P1 · **Stage:** hackathon career discovery · **Status:** IN PROGRESS — code implemented in worktree, NOT COMMITTED. Docs-only reconciliation committed separately; no feature code committed in this run.
+- **Worktree (uncommitted, `feat/career-discovery-b1`):** engine `career-discovery/roles.go` (`AnalyzeRole`, verbatim unmet-echo validation, irrelevant-carries-no-capabilities rule) + `roles_test.go` + `cmd/rolebench/main.go`; host `internal/app/career_roles.go` (two fixed synthetic role profiles, cached analyses in `career_role_analyses`, demo-opportunity creation), `internal/app/answer_provenance.go` (additive `ai_answer_provenance` sidecar, read-only flags, no save-path schema changes) + both tests, `templates/career_roles.html` + scoped CSS; plan doc `docs/implementation/2026-10-26-correction-impact.md`. HACK-004 "Remaining" items for cross-role relevance and answer-artifact staleness are absorbed here, not tracked twice.
+- **Verified this run:** `go build ./...` OK; focused suites PASS (host `TestCareerRoles*` + `TestAnswerProvenance*`; engine `TestAnalyzeRole*` + `TestFindLeads*`); new files gofmt-clean (pre-existing `cover_letters.go`/`handlers.go` formatting left untouched). Full host/engine suites NOT re-run in this run. Live (prior run, isolated demo DB): both Standard-mode role analyses HTTP 200; Contributor rolebench 4/4 `finish=stop` at the shipped 3072 profile (results in worktree, uncommitted).
+- **Submission boundary:** `career-discovery/integration/yourmove.patch` predates HACK-004 (zero `FindLeads`/investigator matches) and needs refresh after HACK-005 lands. Engine `roles.go`/`rolebench` also uncommitted in `jenksed/yourmove-career-discovery`. `~/Projects/yourmove-go` untouched.
+- **Next executable milestone:** land the HACK-005 slice as separate commits (engine roles+eval, host roles page, provenance+flags), refresh the integration patch, then per-role answer/letter activation against the two demo opportunities. Parallel-safe now: engine eval expansion, demo-script drafting, native-acceptance prep, patch-refresh mechanics — none share files with the pending slice. Shared handlers/templates (`app.go`, `app_http.go`, `job.html`) stay single-writer until landing.
