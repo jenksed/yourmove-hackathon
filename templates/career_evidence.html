@@ -5,6 +5,8 @@
 <div class="page-heading"><div><h1>Career Evidence</h1><p class="page-description">Your own situations, actions, and outcomes. Reviewed experiences can appear beside relevant application questions as references; you decide what to use.</p></div><div class="heading-actions"><a class="text-link" href="/answer-library">Answer Library →</a>{{if not .Current}}<form method="POST" action="/career-evidence"><button type="submit" class="button button-primary">Add experience</button></form>{{end}}</div></div>
 {{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
 
+<p><a href="/career-discovery">Discover an experience with Muse →</a></p>
+
 {{if .Current}}
 <section class="career-evidence-editor" aria-labelledby="career-evidence-title">
   <div class="career-evidence-editor-heading"><div><h2 id="career-evidence-title">{{if .Current.Title}}{{.Current.Title}}{{else}}Untitled draft{{end}}</h2><p class="small-muted">{{if eq .Current.Status "reviewed"}}Reviewed by you{{else}}Draft{{end}} · Revision {{.Current.Revision}}</p></div><a href="/career-evidence">All experiences</a></div>

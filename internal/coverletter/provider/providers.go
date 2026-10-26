@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	discovery "github.com/jenksed/yourmove-career-discovery"
 )
 
 const maxLetterBytes = 12000
@@ -24,6 +26,23 @@ type coverBackend struct {
 	Model    string
 	URL      string
 	APIKey   string
+
+	metaDiscovery bool
+	observe       func(RequestMetrics)
+}
+
+// RequestMetrics deliberately excludes prompts, credentials and model content.
+type RequestMetrics struct {
+	PromptTokens     int    `json:"prompt_tokens"`
+	CompletionTokens int    `json:"completion_tokens"`
+	CachedTokens     int    `json:"cached_tokens"`
+	FinishReason     string `json:"finish_reason"`
+}
+
+func (r Runner) GenerateDiscovery(ctx context.Context, prompt, instructions string, observe func(RequestMetrics)) (string, error) {
+	backend := r.backend
+	backend.observe = observe
+	return runProviderProfile(ctx, backend, prompt, instructions, nil, true)
 }
 
 var (
@@ -45,6 +64,19 @@ var (
 type Runner struct {
 	provider string
 	backend  coverBackend
+}
+
+// ConfigureMeta reuses the compatible transport without mutating process-wide
+// provider settings. Discovery always uses standard mode, never Contributor.
+func ConfigureMeta() (Runner, error) {
+	key := os.Getenv("MODEL_API_KEY")
+	if strings.TrimSpace(key) == "" || strings.ContainsAny(key, "\r\n") {
+		return Runner{}, errCoverAPIKey
+	}
+	return Runner{provider: "compatible", backend: coverBackend{
+		Provider: "compatible", Model: discovery.Model,
+		URL: discovery.Endpoint, APIKey: key, metaDiscovery: true,
+	}}, nil
 }
 
 // Configure validates a provider/model pair and captures its startup
@@ -249,6 +281,12 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 			fields["max_tokens"] = 1024
 		}
 	}
+	if backend.metaDiscovery {
+		fields := request.(map[string]any)
+		fields["max_tokens"] = 2048
+		fields["reasoning_effort"] = "low"
+		fields["response_format"] = map[string]string{"type": "json_object"}
+	}
 	data, err := json.Marshal(request)
 	if err != nil {
 		return "", errCoverOutput
@@ -310,6 +348,27 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 		return "", errCoverOutput
 	}
 	var text string
+	if backend.observe != nil {
+		var metadata struct {
+			Usage struct {
+				Prompt     int `json:"prompt_tokens"`
+				Completion int `json:"completion_tokens"`
+				Details    struct {
+					Cached int `json:"cached_tokens"`
+				} `json:"prompt_tokens_details"`
+			} `json:"usage"`
+			Choices []struct {
+				Reason string `json:"finish_reason"`
+			} `json:"choices"`
+		}
+		if json.Unmarshal(limited, &metadata) == nil {
+			m := RequestMetrics{PromptTokens: metadata.Usage.Prompt, CompletionTokens: metadata.Usage.Completion, CachedTokens: metadata.Usage.Details.Cached}
+			if len(metadata.Choices) > 0 {
+				m.FinishReason = metadata.Choices[0].Reason
+			}
+			backend.observe(m)
+		}
+	}
 	switch backend.Provider {
 	case "ollama":
 		var result struct {

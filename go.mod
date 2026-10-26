@@ -2,6 +2,10 @@ module github.com/jenksed/yourmove-go
 
 go 1.27.2
 
+replace github.com/jenksed/yourmove-career-discovery => ./career-discovery
+
+require github.com/jenksed/yourmove-career-discovery v0.0.0
+
 require (
 	github.com/coder/websocket v1.8.14
 	github.com/ledongthuc/pdf v0.0.0-20260907135840-6c8c28e0e8a0

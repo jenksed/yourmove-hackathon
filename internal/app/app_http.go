@@ -12,6 +12,8 @@ import (
 )
 
 type App struct {
+	discoveryMu               sync.Mutex                                            // one charged discovery request at a time
+	discoveryGenerate         func(context.Context, string, string) (string, error) // test seam; production uses Meta
 	answerAI                  answerAIRegistry
 	applicationAnswerGenerate func(context.Context, string, string) (string, error)
 	resources                 *appResources
@@ -50,6 +52,11 @@ func newMux(app *App) http.Handler {
 	mux.HandleFunc("POST /answer-library/{id}/delete", app.deleteAnswerLibraryHandler)
 	mux.HandleFunc("POST /answer-library/{id}/career-evidence", app.createCareerEvidenceFromLibraryHandler)
 	mux.HandleFunc("GET /career-evidence", app.careerEvidencePage)
+	mux.HandleFunc("GET /career-discovery", app.careerDiscoveryPage)
+	mux.HandleFunc("POST /career-discovery", app.startCareerDiscovery)
+	mux.HandleFunc("GET /career-discovery/{id}", app.careerDiscoveryPage)
+	mux.HandleFunc("POST /career-discovery/{id}/next", app.nextCareerDiscovery)
+	mux.HandleFunc("POST /career-discovery/{id}/evidence", app.discoveryEvidenceDraft)
 	mux.HandleFunc("POST /career-evidence", app.createCareerEvidenceHandler)
 	mux.HandleFunc("GET /career-evidence/{id}", app.careerEvidenceEntryHandler)
 	mux.HandleFunc("POST /career-evidence/{id}/save", app.saveCareerEvidenceHandler)

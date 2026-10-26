@@ -31,3 +31,6 @@ jobs.db-shm
 
 # Local code-quality analysis artifacts
 /.quality/
+
+# Authoritative event-only module: independent repository, never vendor the host.
+/career-discovery/
