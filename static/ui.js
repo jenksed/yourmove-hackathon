@@ -929,7 +929,7 @@
       body: fields instanceof URLSearchParams ? fields : new URLSearchParams(fields), signal
     });
     const value = await response.json();
-    if (!response.ok) throw new Error(value.message || 'This drafting request could not complete. Review sources again.');
+    if (!response.ok) throw new Error((value.message || 'This drafting request could not complete. Review sources again.') + (value.failure_stage ? ` [${value.failure_stage}]` : ''));
     return value;
   };
   const sourceReference = source => {

@@ -125,6 +125,35 @@ func TestCoverProviderFailureCategories(t *testing.T) {
 	}
 }
 
+func TestGenerateNarrativeJSONMirrorsDiscoveryProfile(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload struct {
+			MaxTokens       int               `json:"max_tokens"`
+			ReasoningEffort string            `json:"reasoning_effort"`
+			ResponseFormat  map[string]string `json:"response_format"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload.ResponseFormat["type"] != "json_object" {
+			t.Errorf("response_format = %+v", payload.ResponseFormat)
+		}
+		if payload.MaxTokens != 2048 {
+			t.Errorf("max_tokens = %d, want 2048 to match the discovery profile", payload.MaxTokens)
+		}
+		if payload.ReasoningEffort != "low" {
+			t.Errorf("reasoning_effort = %q, want low to match the discovery profile", payload.ReasoningEffort)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"choices":[{"finish_reason":"stop","message":{"content":"{\"answer\":\"grounded\"}"}}]}`)
+	}))
+	defer server.Close()
+	runner := Runner{provider: "compatible", backend: coverBackend{Provider: "compatible", Model: "sample-model", URL: server.URL, APIKey: "test-key"}}
+	if _, err := runner.GenerateNarrativeJSON(context.Background(), "synthetic evidence", "return JSON"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestGenerateNarrativeJSONRequestsJSONFromCompatibleProvider(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var payload map[string]any

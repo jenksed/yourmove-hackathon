@@ -15,9 +15,13 @@ type answerAITicket struct {
 	active              bool
 	snapshot            answerGenerationSnapshot
 	state, answer, code string
-	trace               *discovery.AnswerTrace
-	expires             time.Time
-	cancel              context.CancelFunc
+	// failStage and failDetail are privacy-safe output-failure diagnostics:
+	// a short stage code plus byte/item counts only. Rejected model output
+	// and candidate information are never retained here.
+	failStage, failDetail string
+	trace                 *discovery.AnswerTrace
+	expires               time.Time
+	cancel                context.CancelFunc
 }
 type answerAIRegistry struct {
 	mu      sync.Mutex

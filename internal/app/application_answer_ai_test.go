@@ -646,6 +646,154 @@ func TestNarrativeExcerptsPreserveCompleteProvenance(t *testing.T) {
 	}
 }
 
+func TestNarrativeTraceInstructionsUseSingleOutputFormat(t *testing.T) {
+	a, v, id := narrativeFixture(t)
+	addDiscoveryTraceFixture(t, a, id)
+	e, err := careerEvidenceByID(a.db, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.Set("career_evidence", fmt.Sprintf("%d:%d:%s", id, e.Revision, e.CreatedAt))
+	s, err := a.buildAnswerGenerationSnapshot(1, v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.TraceSources) == 0 {
+		t.Fatal("trace sources missing")
+	}
+	if !strings.Contains(s.Instructions, "Return one JSON object only") {
+		t.Fatal("trace instructions lost the JSON envelope requirement")
+	}
+	if strings.Contains(s.Instructions, "Return only the answer,") {
+		t.Fatal("conflicting plain-text output directive alongside the JSON envelope requirement")
+	}
+	plainApp, plainV, _ := narrativeFixture(t)
+	plain, err := plainApp.buildAnswerGenerationSnapshot(1, plainV)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plain.TraceSources) != 0 {
+		t.Fatal("plain fixture unexpectedly has trace sources")
+	}
+	if !strings.Contains(plain.Instructions, "Return only the answer,") {
+		t.Fatal("plain path lost its output directive")
+	}
+}
+
+func TestNarrativeTraceFailureStages(t *testing.T) {
+	answer := "I used EXPLAIN and found a full table scan. Another team implemented the fix, and I do not know its measured outcome."
+	quote := "I used EXPLAIN and found a full table scan"
+	claimFor := func(id, rev int64, claim, response, excerpt string) string {
+		return fmt.Sprintf(`{"claim":%q,"evidence_id":%d,"evidence_revision":%d,"response_id":%q,"quote":%q}`, claim, id, rev, response, excerpt)
+	}
+	envelope := func(answer, claims, unresolved string) string {
+		return fmt.Sprintf(`{"answer":%q,"claims":[%s],"unresolved":[%s]}`, answer, claims, unresolved)
+	}
+	unresolved := `"The implementing team and measured performance outcome are not established."`
+	for _, tc := range []struct {
+		name, raw, stage, secret string
+	}{
+		{"prose-instead-of-json", "I used EXPLAIN and found a full table scan.", "trace_parse", ""},
+		{"truncated-json", `{"answer":"I used EXPLAIN`, "trace_parse", ""},
+		{"unknown-field", `{"answer":"a","claims":[],"unresolved":[],"reasoning":"private"}`, "trace_parse", ""},
+		{"trailing-text", envelope(answer, "", unresolved) + " extra", "trace_parse", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a, v, _, _ := traceStageFixture(t)
+			a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) { return tc.raw, nil }
+			r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(reviewNarrative(t, a, v)), "", "")
+			if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"failure_stage":"`+tc.stage+`"`) {
+				t.Fatalf("stage %s not reported: %d %s", tc.stage, r.Code, r.Body.String())
+			}
+		})
+	}
+	t.Run("paraphrased-quote", func(t *testing.T) {
+		a, v, id, rev := traceStageFixture(t)
+		secret := "I found a full table scan with EXPLAIN"
+		raw := envelope("I used EXPLAIN and found a full table scan. Another team implemented the fix.", claimFor(id, rev, "Another team implemented the fix", "response-1", secret), unresolved)
+		a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) { return raw, nil }
+		r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(reviewNarrative(t, a, v)), "", "")
+		if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"failure_stage":"trace_quote"`) {
+			t.Fatalf("trace_quote not reported: %d %s", r.Code, r.Body.String())
+		}
+		if strings.Contains(r.Body.String(), secret) {
+			t.Fatal("rejected model output retained in response")
+		}
+	})
+	t.Run("claim-not-substring", func(t *testing.T) {
+		a, v, id, rev := traceStageFixture(t)
+		raw := envelope(answer, claimFor(id, rev, "I optimized every query", "response-1", quote), unresolved)
+		a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) { return raw, nil }
+		r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(reviewNarrative(t, a, v)), "", "")
+		if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"failure_stage":"trace_claim"`) {
+			t.Fatalf("trace_claim not reported: %d %s", r.Code, r.Body.String())
+		}
+	})
+	t.Run("unknown-response-binding", func(t *testing.T) {
+		a, v, id, rev := traceStageFixture(t)
+		raw := envelope(answer, claimFor(id, rev, quote, "response-9", quote), unresolved)
+		a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) { return raw, nil }
+		r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(reviewNarrative(t, a, v)), "", "")
+		if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"failure_stage":"trace_identity"`) {
+			t.Fatalf("trace_identity not reported: %d %s", r.Code, r.Body.String())
+		}
+	})
+	t.Run("markdown-answer", func(t *testing.T) {
+		a, v, id, rev := traceStageFixture(t)
+		raw := envelope("- I used EXPLAIN and found a full table scan", claimFor(id, rev, "I used EXPLAIN and found a full table scan", "response-1", quote), unresolved)
+		a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) { return raw, nil }
+		r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(reviewNarrative(t, a, v)), "", "")
+		if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"failure_stage":"answer_format"`) {
+			t.Fatalf("answer_format not reported: %d %s", r.Code, r.Body.String())
+		}
+	})
+	t.Run("banned-phrasing", func(t *testing.T) {
+		a, v, id, rev := traceStageFixture(t)
+		prose := "Here is your answer: I used EXPLAIN and found a full table scan"
+		raw := envelope(prose, claimFor(id, rev, quote, "response-1", quote), unresolved)
+		a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) { return raw, nil }
+		r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(reviewNarrative(t, a, v)), "", "")
+		if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"failure_stage":"answer_output"`) {
+			t.Fatalf("answer_output not reported: %d %s", r.Code, r.Body.String())
+		}
+	})
+	t.Run("invalid-unresolved", func(t *testing.T) {
+		a, v, id, rev := traceStageFixture(t)
+		raw := envelope(answer, claimFor(id, rev, quote, "response-1", quote), `""`)
+		a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) { return raw, nil }
+		r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(reviewNarrative(t, a, v)), "", "")
+		if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"failure_stage":"trace_unresolved"`) {
+			t.Fatalf("trace_unresolved not reported: %d %s", r.Code, r.Body.String())
+		}
+	})
+	t.Run("too-many-claims", func(t *testing.T) {
+		a, v, id, rev := traceStageFixture(t)
+		fragments := []string{"I used EXPLAIN", "full table scan", "Another team", "implemented the fix", "measured outcome", "I do not know", "used", "team", "fix"}
+		claims := make([]string, 0, len(fragments))
+		for _, fragment := range fragments {
+			claims = append(claims, claimFor(id, rev, fragment, "response-1", fragment))
+		}
+		raw := envelope(strings.Join(fragments, ". "), strings.Join(claims, ","), unresolved)
+		a.applicationAnswerGenerate = func(context.Context, string, string) (string, error) { return raw, nil }
+		r := postApp(newMux(a), "/jobs/1/answers/ai/generate", generationForm(reviewNarrative(t, a, v)), "", "")
+		if r.Code != http.StatusUnprocessableEntity || !strings.Contains(r.Body.String(), `"failure_stage":"trace_shape"`) {
+			t.Fatalf("trace_shape not reported: %d %s", r.Code, r.Body.String())
+		}
+	})
+}
+
+func traceStageFixture(t *testing.T) (*App, url.Values, int64, int64) {
+	t.Helper()
+	a, v, id := narrativeFixture(t)
+	addDiscoveryTraceFixture(t, a, id)
+	e, err := careerEvidenceByID(a.db, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.Set("career_evidence", fmt.Sprintf("%d:%d:%s", id, e.Revision, e.CreatedAt))
+	return a, v, id, e.Revision
+}
+
 func TestNarrativeEscapedUTF8ExcerptsKeepActualEvidence(t *testing.T) {
 	original := "Résumé investigation: " + strings.Repeat("<>& résumé ", 1000)
 	source, err := boundedAnswerAISource(answerAISource{Category: "resume", Content: original}, 512)

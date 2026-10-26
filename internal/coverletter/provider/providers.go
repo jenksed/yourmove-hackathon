@@ -297,7 +297,13 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 		fields["reasoning_effort"] = "low"
 		fields["response_format"] = map[string]string{"type": "json_object"}
 	} else if narrative && backend.jsonOutput && backend.Provider == "compatible" {
-		request.(map[string]any)["response_format"] = map[string]string{"type": "json_object"}
+		// Structured answer traces carry the answer plus verbatim claims, so
+		// they use the discovery profile that already succeeds: a larger
+		// output budget with low reasoning effort and a JSON object contract.
+		fields := request.(map[string]any)
+		fields["max_tokens"] = 2048
+		fields["reasoning_effort"] = "low"
+		fields["response_format"] = map[string]string{"type": "json_object"}
 	}
 	data, err := json.Marshal(request)
 	if err != nil {
