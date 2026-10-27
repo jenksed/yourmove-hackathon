@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -29,17 +30,39 @@ type coverBackend struct {
 	APIKey   string
 
 	metaDiscovery bool
+	baseten       bool // HACK-BASETEN: temporary backend flag; delete on removal.
 	jsonOutput     bool
 	letterBudget   bool
 	observe       func(RequestMetrics)
 }
 
+// HACK-BASETEN: temporary hackathon backend. Baseten hosts Muse Spark Open
+// behind an OpenAI-compatible endpoint; it is a different model from Meta's
+// direct Muse Spark 1.3, with its own behavior and billing. Removal restores
+// the Meta-only integration; see docs/hackathon/BASETEN_TEMPORARY_BACKEND.md.
+const (
+	// MuseBackendMeta selects Meta's direct Muse Spark endpoint.
+	MuseBackendMeta = "meta"
+	// MuseBackendBaseten selects Baseten's hosted Muse Spark Open model.
+	MuseBackendBaseten = "baseten"
+
+	basetenChatURL = "https://inference.baseten.co/v1/chat/completions"
+	// BasetenMuseModel is the exact restricted hackathon model identifier.
+	// It is not Baseten's general public model identifier.
+	BasetenMuseModel = "meta-models/muse-spark-open-1026"
+)
+
 // RequestMetrics deliberately excludes prompts, credentials and model content.
+// Backend names the hackathon Muse backend that served the request ("meta" or
+// "baseten") and Model carries its exact model identifier, so diagnostics and
+// evaluation results preserve which model actually ran.
 type RequestMetrics struct {
 	PromptTokens     int    `json:"prompt_tokens"`
 	CompletionTokens int    `json:"completion_tokens"`
 	CachedTokens     int    `json:"cached_tokens"`
 	FinishReason     string `json:"finish_reason"`
+	Backend          string `json:"backend"`
+	Model            string `json:"model"`
 }
 
 func (r Runner) GenerateDiscovery(ctx context.Context, prompt, instructions string, observe func(RequestMetrics)) (string, error) {
@@ -60,6 +83,7 @@ var (
 	errCoverUnavailable  = errors.New("provider is unavailable")
 	errCoverOutput       = errors.New("provider returned no usable text")
 	errCoverEndpoint     = errors.New("compatible provider endpoint is missing or invalid")
+	errMuseBackend       = errors.New("hackathon Muse backend is not recognized") // HACK-BASETEN: delete on removal.
 )
 
 // Runner contains validated provider configuration without exposing endpoint
@@ -69,9 +93,44 @@ type Runner struct {
 	backend  coverBackend
 }
 
+// HACK-BASETEN: temporary selection helper; delete on removal.
+// SelectedMuseBackend reports which hackathon Muse backend serves Career
+// Discovery and related Muse workflows: "meta" by default, "baseten" when
+// HACKATHON_MUSE_BACKEND=baseten. Any other value is an actionable error;
+// callers must not silently use a backend the operator did not select.
+func SelectedMuseBackend() (string, error) {
+	raw := strings.TrimSpace(os.Getenv("HACKATHON_MUSE_BACKEND"))
+	if raw == "" || strings.EqualFold(raw, MuseBackendMeta) {
+		return MuseBackendMeta, nil
+	}
+	if strings.EqualFold(raw, MuseBackendBaseten) {
+		return MuseBackendBaseten, nil
+	}
+	return "", fmt.Errorf("HACKATHON_MUSE_BACKEND=%q is not recognized (use %q or %q): %w", raw, MuseBackendMeta, MuseBackendBaseten, errMuseBackend)
+}
+
 // ConfigureMeta reuses the compatible transport without mutating process-wide
 // provider settings. Discovery always uses standard mode, never Contributor.
+// HACK-BASETEN: the baseten branch below is temporary; delete it on removal
+// so this function configures Meta directly again. When
+// HACKATHON_MUSE_BACKEND=baseten, Career Discovery runs against Baseten's
+// hosted Muse Spark Open model instead of Meta's direct endpoint. A missing
+// Baseten key is an error: selection never falls back to the other account.
 func ConfigureMeta() (Runner, error) {
+	backend, err := SelectedMuseBackend()
+	if err != nil {
+		return Runner{}, err
+	}
+	if backend == MuseBackendBaseten {
+		key := os.Getenv("BASETEN_API_KEY")
+		if strings.TrimSpace(key) == "" || strings.ContainsAny(key, "\r\n") {
+			return Runner{}, fmt.Errorf("BASETEN_API_KEY is not configured for the Baseten hackathon backend: %w", errCoverAPIKey)
+		}
+		return Runner{provider: "compatible", backend: coverBackend{
+			Provider: "compatible", Model: BasetenMuseModel,
+			URL: basetenChatURL, APIKey: key, metaDiscovery: true, baseten: true,
+		}}, nil
+	}
 	key := os.Getenv("MODEL_API_KEY")
 	if strings.TrimSpace(key) == "" || strings.ContainsAny(key, "\r\n") {
 		return Runner{}, errCoverAPIKey
@@ -141,6 +200,29 @@ func (r Runner) GenerateLetter(ctx context.Context, prompt, instructions string)
 		r.backend.letterBudget = true
 	}
 	return r.Generate(ctx, prompt, instructions)
+}
+
+// HACK-BASETEN: temporary identity accessors; delete on removal.
+// MuseBackend reports which hackathon Muse backend this Runner serves:
+// "baseten" for Baseten's hosted Muse Spark Open, "meta" for Meta's direct
+// endpoint, or "" for runners configured for other providers.
+func (r Runner) MuseBackend() string {
+	if r.backend.metaDiscovery && r.backend.baseten {
+		return MuseBackendBaseten
+	}
+	if r.backend.metaDiscovery {
+		return MuseBackendMeta
+	}
+	return ""
+}
+
+// MuseModel reports the exact model identifier this Muse Runner sends.
+// It is empty for runners configured for other providers.
+func (r Runner) MuseModel() string {
+	if r.backend.metaDiscovery {
+		return r.backend.Model
+	}
+	return ""
 }
 
 // ExecutionLocality describes the configured transport, never inference guarantees.
@@ -405,6 +487,7 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 			if len(metadata.Choices) > 0 {
 				m.FinishReason = metadata.Choices[0].Reason
 			}
+			m.Backend, m.Model = backend.museIdentity() // HACK-BASETEN: delete on removal.
 			backend.observe(m)
 		}
 	}
@@ -518,6 +601,19 @@ func runProviderProfile(ctx context.Context, backend coverBackend, prompt, instr
 		return "", errCoverOutput
 	}
 	return text, nil
+}
+
+// HACK-BASETEN: temporary identity helper; delete on removal.
+// museIdentity names the hackathon Muse backend and exact model for observed
+// requests. It is empty for runners configured for other providers.
+func (b coverBackend) museIdentity() (string, string) {
+	if !b.metaDiscovery {
+		return "", ""
+	}
+	if b.baseten {
+		return MuseBackendBaseten, b.Model
+	}
+	return MuseBackendMeta, b.Model
 }
 
 func coverErrorNotice(err error) string {

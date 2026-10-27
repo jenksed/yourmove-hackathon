@@ -185,11 +185,7 @@ func (a *App) runRoleAnalysis(ctx context.Context, role discovery.RoleProfile, e
 		encoded, _ := json.Marshal(analysis)
 		raw = string(encoded)
 	}
-	if metrics.PromptTokens > 0 || metrics.CompletionTokens > 0 {
-		cached := min(metrics.CachedTokens, metrics.PromptTokens)
-		cost := (float64(metrics.PromptTokens-cached)*1.25 + float64(cached)*0.15 + float64(metrics.CompletionTokens)*4.25) / 1e6
-		notice += fmt.Sprintf(" Tokens: %d input / %d output; estimated inference $%.5f; finish: %s.", metrics.PromptTokens, metrics.CompletionTokens, cost, metrics.FinishReason)
-	}
+	notice += discoveryUsageNote(*metrics, true)
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	if raw == "" {
 		// Surface the failure without overwriting a prior good analysis.

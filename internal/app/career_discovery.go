@@ -189,6 +189,32 @@ func (a *App) discoveryRunner() (discovery.Generate, *coverprovider.RequestMetri
 	return gen, metrics, nil
 }
 
+// discoveryUsageNote reports observed inference usage with the actual backend
+// and model identity, so diagnostics and evaluation results preserve which
+// model ran. Meta dollar estimates never apply to Baseten usage, which bills
+// the hackathon account separately.
+func discoveryUsageNote(m coverprovider.RequestMetrics, withFinish bool) string {
+	if m.PromptTokens <= 0 && m.CompletionTokens <= 0 {
+		return ""
+	}
+	// HACK-BASETEN: temporary backend branch; delete on removal.
+	if m.Backend == coverprovider.MuseBackendBaseten {
+		note := fmt.Sprintf(" Tokens: %d input / %d output via Baseten %s", m.PromptTokens, m.CompletionTokens, m.Model)
+		if withFinish {
+			note += fmt.Sprintf("; finish: %s", m.FinishReason)
+		}
+		return note + "."
+	}
+	// Standard-mode estimate, not an account charge; rates checked 2026-10-26.
+	cached := min(m.CachedTokens, m.PromptTokens)
+	cost := (float64(m.PromptTokens-cached)*1.25 + float64(cached)*0.15 + float64(m.CompletionTokens)*4.25) / 1e6
+	note := fmt.Sprintf(" Tokens: %d input / %d output; estimated inference $%.5f", m.PromptTokens, m.CompletionTokens, cost)
+	if withFinish {
+		note += fmt.Sprintf("; finish: %s", m.FinishReason)
+	}
+	return note + "."
+}
+
 func (a *App) runLeads(ctx context.Context, p discoveryPage) error {
 	generate, metrics, err := a.discoveryRunner()
 	next := p.State
@@ -206,11 +232,7 @@ func (a *App) runLeads(ctx context.Context, p discoveryPage) error {
 			notice = "Muse output did not pass lead checks. Your excerpt is saved; retry below. Nothing was approved."
 		}
 	}
-	if metrics.PromptTokens > 0 || metrics.CompletionTokens > 0 {
-		cached := min(metrics.CachedTokens, metrics.PromptTokens)
-		cost := (float64(metrics.PromptTokens-cached)*1.25 + float64(cached)*0.15 + float64(metrics.CompletionTokens)*4.25) / 1e6
-		notice += fmt.Sprintf(" Tokens: %d input / %d output; estimated inference $%.5f.", metrics.PromptTokens, metrics.CompletionTokens, cost)
-	}
+	notice += discoveryUsageNote(*metrics, false)
 	raw, _ := json.Marshal(next)
 	result, err := a.db.Exec(`UPDATE career_discovery SET state=?,notice=?,revision=revision+1 WHERE id=? AND revision=? AND evidence_id=0`, string(raw), notice, p.ID, p.Revision)
 	if err != nil {
@@ -420,12 +442,7 @@ func (a *App) runDiscovery(ctx context.Context, p discoveryPage) error {
 			notice = "Muse output did not pass source or format checks. Your input is saved; retry or start a new interview. No evidence was approved."
 		}
 	}
-	if metrics.PromptTokens > 0 || metrics.CompletionTokens > 0 {
-		// Standard-mode estimate, not an account charge; rates checked 2026-10-26.
-		cached := min(metrics.CachedTokens, metrics.PromptTokens)
-		cost := (float64(metrics.PromptTokens-cached)*1.25 + float64(cached)*0.15 + float64(metrics.CompletionTokens)*4.25) / 1e6
-		notice += fmt.Sprintf(" Tokens: %d input / %d output; estimated inference $%.5f; finish: %s.", metrics.PromptTokens, metrics.CompletionTokens, cost, metrics.FinishReason)
-	}
+	notice += discoveryUsageNote(metrics, true)
 	raw, _ := json.Marshal(next)
 	// A late result cannot overwrite a newer candidate response or review draft.
 	result, err := a.db.Exec(`UPDATE career_discovery SET state=?,notice=?,revision=revision+1 WHERE id=? AND revision=? AND evidence_id=0`, string(raw), notice, p.ID, p.Revision)

@@ -29,8 +29,21 @@ func (a *App) aiConnectionsPage(w http.ResponseWriter, r *http.Request) {
 		s := &sources[i]
 		switch s.ID {
 		case "meta":
-			if _, err := coverprovider.ConfigureMeta(); err == nil {
-				s.State, s.Detail = "ready", "Key available in this session. Access and credits are checked when you generate."
+			runner, err := coverprovider.ConfigureMeta()
+			if err == nil {
+				s.State = "ready"
+				// HACK-BASETEN: temporary display branch; delete on removal.
+				if runner.MuseBackend() == coverprovider.MuseBackendBaseten {
+					s.Name = "Muse Spark Open (Baseten)"
+					s.Model = runner.MuseModel()
+					s.Detail = "Baseten hackathon backend selected (HACKATHON_MUSE_BACKEND=baseten). Key available in this session. Access and credits are checked when you generate."
+				} else {
+					s.Detail = "Key available in this session. Access and credits are checked when you generate."
+				}
+			} else if backend, berr := coverprovider.SelectedMuseBackend(); berr == nil && backend == coverprovider.MuseBackendBaseten { // HACK-BASETEN: temporary display branch; delete on removal.
+				s.Name = "Muse Spark Open (Baseten)"
+				s.Model = coverprovider.BasetenMuseModel
+				s.State, s.Detail = "setup", "Add BASETEN_API_KEY to start a Baseten Muse interview."
 			} else {
 				s.State, s.Detail = "setup", "Add MODEL_API_KEY to start a Muse interview."
 			}
