@@ -49,7 +49,12 @@ type connectionView struct {
 }
 
 type studioPage struct {
-	Evidences   []CareerEvidence
+	Evidences []CareerEvidence
+	// Eligible is the exact filtered and capped synthesis input set from
+	// reviewedSynthesisEvidences: reviewed records with nonblank
+	// title/situation/actions, at most MaxConnectionEvidences. The gate and
+	// the consent count render from this, not from len(Evidences).
+	Eligible    []CareerEvidence
 	Drafts      []CareerEvidence
 	Connections []connectionView
 	Synthesis   *discovery.ConnectionSynthesis
@@ -60,6 +65,30 @@ type studioPage struct {
 	Destination string
 	Roles       []roleAnalysisPage
 	ChallengeN  int
+}
+
+// splitNotice separates a stored candidate-facing notice from its trailing
+// request telemetry (" Tokens: ..."), which discoveryUsageNote always
+// appends with that exact prefix. Templates keep the human message in the
+// reading path and subordinate the technical detail; notices without
+// telemetry (including failures) render unchanged.
+func splitNotice(notice string) (main, detail string) {
+	if i := strings.Index(notice, " Tokens: "); i >= 0 {
+		return strings.TrimSpace(notice[:i]), strings.TrimSpace(notice[i+1:])
+	}
+	return notice, ""
+}
+
+// NoticeMain is the candidate-facing part of the stored synthesis notice.
+func (p studioPage) NoticeMain() string {
+	main, _ := splitNotice(p.Notice)
+	return main
+}
+
+// NoticeDetail is the trailing request telemetry, if any.
+func (p studioPage) NoticeDetail() string {
+	_, detail := splitNotice(p.Notice)
+	return detail
 }
 
 func reviewedSynthesisEvidences(a *App) ([]CareerEvidence, []discovery.ConnectionEvidence, error) {
@@ -126,6 +155,7 @@ func (a *App) loadStudio() (studioPage, error) {
 	if err != nil {
 		return page, err
 	}
+	page.Eligible = reviewed
 	page.Hash = roleEvidenceHash(reviewed)
 	var raw, notice string
 	err = a.db.QueryRow(`SELECT evidence_hash,synthesis,notice FROM career_connections WHERE id=1`).Scan(&page.StoredHash, &raw, &notice)

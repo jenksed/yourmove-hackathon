@@ -1,14 +1,20 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Career Discovery · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
-{{template "shell-open" "career-evidence"}}
-<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/career-evidence">Career Evidence</a><span aria-hidden="true">/</span><span>Career Discovery</span></nav>
+{{template "shell-open" "career-studio-child"}}
+<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/career-studio">Career Studio</a><span aria-hidden="true">/</span><span>Career Discovery</span></nav>
 <div class="page-heading"><div><h1>Career Discovery</h1><p class="page-description">An investigation into your own experience. Muse asks, you answer, and nothing represents you until you approve it.</p></div></div>
+{{template "studio-local-nav" "discovery"}}
 {{if .ID}}
-{{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
+{{if .Notice}}<p class="local-save-confirmation" role="status">{{.NoticeMain}}</p>{{if .NoticeDetail}}<details class="request-details"><summary>Request details</summary><p class="small-muted">{{.NoticeDetail}}</p></details>{{end}}{{end}}
 <div class="investigator">
   <div class="investigator-main">
   {{if .EvidenceID}}
     <section aria-labelledby="story-ready"><h2 id="story-ready">Your evidence draft is ready for review</h2><p class="small-muted">Read it as a story. Correct anything that does not sound like you, then approve it in Career Evidence.</p><p><a class="button button-primary" href="/career-evidence/{{.EvidenceID}}">Review saved evidence</a></p></section>
+    <section class="interview-responses" aria-labelledby="interview-responses"><h2 id="interview-responses">Your interview responses</h2>
+      {{if .State.Responses}}<p class="small-muted">What you said, in your own words. These are your recorded statements — not reviewed facts.</p>
+      <ol class="learned-list">{{range .State.Responses}}<li><p class="learned-q">{{.Question}}</p><p>{{.Source.Text}}</p><p class="small-muted">Your statement · {{.Source.ID}} · self-report</p></li>{{end}}</ol>
+      {{else}}<p class="small-muted">No responses were recorded in this investigation.</p>{{end}}
+    </section>
   {{else if .NeedsLeads}}
     <section aria-labelledby="leads-retry"><h2 id="leads-retry">Your excerpt is saved</h2><p class="small-muted">Muse has not identified investigation leads yet. Retry sends only the saved excerpt.</p>
       <form method="POST" action="/career-discovery/{{.ID}}/leads"><input type="hidden" name="revision" value="{{.Revision}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send the saved résumé excerpt to {{.Destination}} to identify investigation leads.</span></label><button class="button button-primary" type="submit">Find investigation leads</button></form></section>
@@ -33,19 +39,24 @@
       </form></section>
     {{else if not .State.Question}}<form method="POST" action="/career-discovery/{{.ID}}/next"><input type="hidden" name="revision" value="{{.Revision}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send the saved interview to {{.Destination}} for another request.</span></label><button class="button button-secondary" type="submit">Retry Muse request</button></form>
     {{else}}<p>This investigation reached its six-response limit. Review the proposed story above, or explore another lead from the panel.</p>{{end}}
+    <section class="interview-responses" aria-labelledby="interview-responses"><h2 id="interview-responses">Your interview responses</h2>
+      {{if .State.Responses}}<p class="small-muted">What you said, in your own words. These are your recorded statements — not reviewed facts.</p>
+      <ol class="learned-list">{{range .State.Responses}}<li><p class="learned-q">{{.Question}}</p><p>{{.Source.Text}}</p><p class="small-muted">Your statement · {{.Source.ID}} · self-report</p></li>{{end}}</ol>
+      {{else}}<p class="small-muted">Nothing yet. Your answers will appear here as recorded statements, separate from Muse’s interpretations.</p>{{end}}
+    </section>
   {{end}}
   </div>
-  <aside class="investigator-aside" aria-label="What Muse has learned">
-    <section><h2>What we have learned</h2>
-      {{if .State.Responses}}<ol class="learned-list">{{range .State.Responses}}<li><p class="learned-q">{{.Question}}</p><p>{{.Source.Text}}</p><p class="small-muted">Your statement · {{.Source.ID}} · self-report</p></li>{{end}}</ol>
-      {{else}}<p class="small-muted">Nothing yet. Your answers will appear here as established statements, separate from Muse’s interpretations.</p>{{end}}
-    </section>
+  <aside class="investigator-aside" aria-label="Open questions and other leads">
     <section><h2>Still unresolved</h2>
       {{if and .State.Proposal .State.Proposal.Unresolved}}<ul>{{range .State.Proposal.Unresolved}}<li>{{.}}</li>{{end}}</ul>
       {{else}}<p class="small-muted">Outcomes and responsibilities stay unknown until you establish them. Muse will not invent them.</p>{{end}}
     </section>
     {{if .State.Leads}}<section><h2>Investigation leads</h2><ul class="aside-leads">{{range .State.Leads}}<li>{{if eq .ID $.State.SelectedLeadID}}<strong>{{.Title}}</strong> · investigating{{else}}{{.Title}}{{end}}</li>{{end}}</ul>
-      {{if or .EvidenceID (not .LeadPicker)}}<p class="small-muted">Explore another lead in a fresh investigation. This one stays saved.</p>{{range .State.Leads}}{{if ne .ID $.State.SelectedLeadID}}<form method="POST" action="/career-discovery/{{$.ID}}/explore" class="explore-form"><input type="hidden" name="revision" value="{{$.Revision}}"><input type="hidden" name="lead_id" value="{{.ID}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send my excerpt to {{$.Destination}} to investigate “{{.Title}}” .</span></label><button class="button button-secondary" type="submit">Explore: {{.Title}}</button></form>{{end}}{{end}}{{end}}
+      {{if or .EvidenceID (not .LeadPicker)}}
+      <details class="explore-another"><summary>Explore another experience</summary><p class="small-muted">Explore another lead in a fresh investigation. This one stays saved.</p>
+      {{range .State.Leads}}{{if ne .ID $.State.SelectedLeadID}}<form method="POST" action="/career-discovery/{{$.ID}}/explore" class="explore-form"><input type="hidden" name="revision" value="{{$.Revision}}"><input type="hidden" name="lead_id" value="{{.ID}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send my excerpt to {{$.Destination}} to investigate “{{.Title}}” .</span></label><button class="button button-secondary" type="submit">Explore: {{.Title}}</button></form>{{end}}{{end}}
+      </details>
+      {{end}}
     </section>{{end}}
     <details class="career-evidence-source"><summary>Source record · résumé and statements</summary><h3>Résumé excerpt you provided</h3><pre class="evidence-text">{{.State.Resume.Text}}</pre>{{range .State.Responses}}<h3>Muse asked</h3><p>{{.Question}}</p><p class="small-muted">Candidate self-report · {{.Source.ID}}</p><pre class="evidence-text">{{.Source.Text}}</pre>{{end}}</details>
     <p><a href="/career-discovery">All investigations / start another</a></p>

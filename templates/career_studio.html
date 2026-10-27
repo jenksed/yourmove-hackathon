@@ -2,13 +2,8 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Career Studio · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
 {{template "shell-open" "career-studio"}}
 <div class="page-heading"><div><h1>Your career, understood as a whole</h1><p class="page-description">What you have established, what YourMove is beginning to understand across your experiences, and where you can challenge it. You remain the authority over your history.</p></div></div>
-<nav class="studio-journey" aria-label="Career journey">
-  <a href="/career-discovery">1 · Investigate</a><span aria-hidden="true">→</span>
-  <a href="#understand">2 · Understand</a><span aria-hidden="true">→</span>
-  <a href="#connections">3 · Challenge</a><span aria-hidden="true">→</span>
-  <a href="#roles">4 · Explore roles</a><span aria-hidden="true">→</span>
-  <a href="#prepare">5 · Prepare applications</a>
-</nav>
+{{template "studio-local-nav" "studio"}}
+<p class="studio-intro">Investigate an experience in Career Discovery, inspect and correct the proposed draft, and confirm what represents you — then optionally <a href="#connections">look for connections</a> or <a href="#roles">explore roles</a>. You can also <a href="/career-evidence">add an experience directly</a>; no interview is required.</p>
 
 <section id="understand" class="studio-section">
   <h2>What you have established</h2>
@@ -18,10 +13,10 @@
   {{range .Evidences}}
     <article class="story-card">
       <h3><a href="/career-evidence/{{.ID}}">{{.Title}}</a></h3>
-      <p class="small-muted">Reviewed · revision {{.Revision}}{{if .Period}} · {{.Period}}{{end}} · outcome: {{.OutcomeState}}</p>
+      <p class="small-muted">Reviewed · revision {{.Revision}}{{if .Period}} · {{.Period}}{{end}} · {{if eq .OutcomeState "recorded"}}outcome recorded below{{else if eq .OutcomeState "unknown"}}outcome unknown to you{{else}}outcome not recorded{{end}}</p>
       <p><strong>Situation.</strong> {{.Situation}}</p>
       <p><strong>Your actions.</strong> {{.Actions}}</p>
-      {{if eq .OutcomeState "recorded"}}<p><strong>Outcome.</strong> {{.Outcome}}</p>{{else}}<p class="small-muted">Outcome not established — treated as unknown, not guessed.</p>{{end}}
+      {{if eq .OutcomeState "recorded"}}<p><strong>Outcome.</strong> {{.Outcome}}</p>{{else if eq .OutcomeState "unknown"}}<p class="small-muted">Outcome unknown — you noted you do not know what resulted. Treated as unknown, not guessed.</p>{{else}}<p class="small-muted">You have not recorded an outcome here. Nothing was guessed.</p>{{end}}
       <p><a href="/career-evidence/{{.ID}}">Inspect or correct this record</a></p>
     </article>
   {{end}}
@@ -30,7 +25,7 @@
   <p>No reviewed experiences yet. Investigate an experience and review what Muse proposes — nothing counts as established until you review it.</p>
   <p><a class="button button-primary" href="/career-discovery">Investigate an experience</a> <a class="button button-secondary" href="/career-evidence">Open Career Evidence</a></p>
   {{end}}
-  {{if .Drafts}}<p class="small-muted">{{len .Drafts}} draft record(s) not yet reviewed — they are excluded from every interpretation below. <a href="/career-evidence">Review drafts</a></p>{{end}}
+  {{if .Drafts}}<p class="small-muted">{{len .Drafts}} draft {{if eq (len .Drafts) 1}}record{{else}}records{{end}} not yet reviewed — excluded from every interpretation below. <a href="/career-evidence">Review drafts</a></p>{{end}}
 </section>
 
 <section id="mirror" class="studio-section">
@@ -51,7 +46,7 @@
     </article>
     {{end}}
     {{else}}
-    <p>Muse examined {{len .Evidences}} reviewed record(s) and found no defensible cross-experience connection, so nothing is presented as a discovery. Shared keywords alone are not a connection. <a href="/career-discovery">Keep investigating</a></p>
+    <p>Muse examined {{len .Eligible}} reviewed {{if eq (len .Eligible) 1}}experience{{else}}experiences{{end}} and found no defensible cross-experience connection, so nothing is presented as a discovery. Shared keywords alone are not a connection. <a href="/career-discovery">Keep investigating</a></p>
     {{end}}
   {{else}}
   <p class="small-muted">No cross-experience synthesis saved yet. The mirror appears after you look for connections below.</p>
@@ -60,14 +55,11 @@
 
 <section id="connections" class="studio-section">
   <h2>Connected capabilities <span class="studio-kind studio-kind-hypothesis">AI hypothesis — not approved fact</span></h2>
-  {{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
-  {{if lt (len .Evidences) 2}}
-  <p class="small-muted">Connections need at least two reviewed experiences. Review another record to look across your history.{{if .Synthesis}} A previous synthesis is shown below for reference; it may depend on superseded evidence until you re-run it.{{end}}</p>
+  {{if .Notice}}<p class="local-save-confirmation" role="status">{{.NoticeMain}}</p>{{if .NoticeDetail}}<details class="request-details"><summary>Request details</summary><p class="small-muted">{{.NoticeDetail}}</p></details>{{end}}{{end}}
+  {{if lt (len .Eligible) 2}}
+  <p class="small-muted">Connections need at least two reviewed experiences.{{if eq (len .Eligible) 1}} With one reviewed experience you can already <a href="/career-roles">explore roles</a>; review one more record to look across your history.{{else}} <a href="/career-discovery">Investigate an experience</a> and review the proposed draft{{if .Drafts}}, or <a href="/career-evidence">review your existing drafts</a>{{end}}.{{end}}{{if .Synthesis}} A previous synthesis is shown below for reference; it may depend on superseded evidence until you re-run it.{{end}}</p>
   {{end}}
-  {{if and .Synthesis (lt (len .Evidences) 2)}}{{if .Stale}}<p class="studio-alert" role="alert">Supporting evidence changed since this synthesis. The interpretation below may depend on superseded evidence — re-run the synthesis before relying on it. Saved answers and letters were not rewritten.</p>{{end}}{{end}}
-  {{if ge (len .Evidences) 2}}
   {{if .Stale}}<p class="studio-alert" role="alert">Supporting evidence changed since this synthesis. The interpretation below may depend on superseded evidence — re-run the synthesis before relying on it. Saved answers and letters were not rewritten.</p>{{end}}
-  {{end}}
   {{if .Synthesis}}
     {{if not .Connections}}<p>Muse found no defensible connection across these records. Shared keywords alone are not a connection, so nothing was invented.</p>{{end}}
     {{range .Connections}}
@@ -97,12 +89,15 @@
     </article>
     {{end}}
   {{else}}
-  <p class="small-muted">No cross-experience synthesis saved yet. Muse will examine {{len .Evidences}} reviewed record(s) together and must quote your exact statements for every connection it proposes.</p>
+  <p class="small-muted">No cross-experience synthesis saved yet. Muse will examine {{len .Eligible}} reviewed {{if eq (len .Eligible) 1}}experience{{else}}experiences{{end}} together and must quote your exact statements for every connection it proposes.</p>
   {{end}}
+  {{if ge (len .Eligible) 2}}
   <form method="POST" action="/career-connections/synthesize">
-    <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send {{len .Evidences}} reviewed record(s) to {{.Destination}} to look for connections across my experiences. Interpretations remain hypotheses until I judge them.</span></label>
+    <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send {{len .Eligible}} reviewed {{if eq (len .Eligible) 1}}experience{{else}}experiences{{end}} to {{.Destination}} to look for connections across my experiences. Interpretations remain hypotheses until I judge them.</span></label>
+    {{if gt (len .Evidences) (len .Eligible)}}<p class="small-muted">You have {{len .Evidences}} reviewed experiences; this request sends {{len .Eligible}}.</p>{{end}}
     <button class="button button-primary" type="submit">{{if .Synthesis}}Re-run synthesis{{else}}Look for connections{{end}}</button>
   </form>
+  {{end}}
 </section>
 
 <section id="roles" class="studio-section">

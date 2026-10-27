@@ -44,6 +44,18 @@ func (p discoveryPage) LeadPicker() bool {
 	return len(p.State.Leads) > 0 && p.State.SelectedLeadID == "" && len(p.State.Responses) == 0
 }
 
+// NoticeMain is the candidate-facing part of the stored interview notice.
+func (p discoveryPage) NoticeMain() string {
+	main, _ := splitNotice(p.Notice)
+	return main
+}
+
+// NoticeDetail is the trailing request telemetry, if any.
+func (p discoveryPage) NoticeDetail() string {
+	_, detail := splitNotice(p.Notice)
+	return detail
+}
+
 func (a *App) discoveryByID(id int64) (discoveryPage, error) {
 	var p discoveryPage
 	var raw string

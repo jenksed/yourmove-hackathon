@@ -150,6 +150,7 @@ small,.small-muted{font-size:12px;line-height:1.55;color:var(--color-muted)}
 .nav-item svg{width:18px;height:18px;flex:0 0 18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .nav-item:hover{background:var(--color-surface-muted);color:var(--color-text)}
 .nav-item.is-active{background:var(--color-navigation-selected);color:var(--color-text);box-shadow:inset 3px 0 var(--color-primary)}
+.nav-item.is-parent{background:var(--color-navigation-selected);color:var(--color-text)}
 .sidebar-bottom{margin-top:auto;padding:20px 12px 0;border-top:1px solid var(--color-border);display:grid;grid-template-columns:8px 1fr;column-gap:10px;align-items:center;font-weight:620;font-size:12px}
 .sidebar-bottom .local-dot{width:7px;height:7px;background:var(--color-success);border-radius:50%}.sidebar-bottom small{grid-column:2}
 .app-main{min-width:0;display:flex;flex-direction:column;min-height:100vh}
@@ -920,6 +921,9 @@ small,.small-muted{font-size:12px;line-height:1.55;color:var(--color-muted)}
 .career-evidence-editor {border-top:1px solid var(--color-border);padding-top:18px}
 .career-evidence-editor-heading {display:flex;justify-content:space-between;align-items:start;gap:16px}
 .career-evidence-editor-heading h2 {font-size:18px;margin:0 0 4px;overflow-wrap:anywhere}
+.evidence-status {font-size:16px;margin:8px 0 0;color:var(--color-text)}
+.evidence-status strong {font-weight:750}
+.editor-return-links {display:grid;gap:6px;justify-items:end;flex:none}
 .career-evidence-form {display:grid;gap:13px;max-width:780px;margin-top:18px}
 .career-evidence-form .field textarea {box-sizing:border-box;width:100%}
 .career-evidence-context-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
@@ -971,6 +975,7 @@ small,.small-muted{font-size:12px;line-height:1.55;color:var(--color-muted)}
   .answer-library-search button {width:100%}
   .career-evidence-context-grid,.career-evidence-row {grid-template-columns:1fr}
   .career-evidence-editor-heading {flex-direction:column}
+  .editor-return-links {justify-items:start}
   .career-evidence-form-actions {flex-direction:column}
   .career-evidence-form-actions .button,.career-evidence-delete .button {width:100%}
   .career-evidence-full dl {grid-template-columns:1fr;gap:3px}
@@ -1378,6 +1383,13 @@ form[data-dirty="true"] [data-answer-status] {color:var(--color-dirty);font-weig
 .aside-leads{padding-left:18px}
 .explore-form{margin:10px 0;display:grid;gap:6px}
 .investigator-start{max-width:780px}
+.interview-responses{margin-top:30px;border-top:1px solid var(--color-border);padding-top:18px}
+.interview-responses h2{font-size:18px}
+.interview-responses .learned-list{margin-top:12px}
+.request-details{margin:4px 0 12px;max-width:780px}
+.request-details summary{cursor:pointer;color:var(--color-muted);font-size:12px;font-weight:650;padding:4px 0}
+.explore-another{margin-top:12px}
+.explore-another summary{cursor:pointer;color:var(--color-muted);font-size:12px;font-weight:650;padding:6px 0}
 @media(max-width:900px){.investigator{grid-template-columns:1fr}.investigator-aside{border-left:0;border-top:1px solid var(--color-border);padding:18px 0 0}.investigator-main{order:1}.investigator-aside{order:2}}
 .investigator-aside,.investigator-aside section{min-width:0}
 .learned-list p,.story-body{overflow-wrap:break-word}
@@ -1390,8 +1402,11 @@ form[data-dirty="true"] [data-answer-status] {color:var(--color-dirty);font-weig
 .role-evidence-note{max-width:780px}
 
 /* HACK-006 Living Career Intelligence Studio */
-.studio-journey{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 28px;font-size:14px}
-.studio-journey a{font-weight:650}
+.studio-local-nav{display:flex;flex-wrap:wrap;gap:4px 20px;margin:0 0 16px;font-size:14px}
+.studio-local-nav a{color:var(--color-muted);text-decoration:none;font-weight:590}
+.studio-local-nav a:hover{color:var(--color-text);text-decoration:underline;text-underline-offset:4px}
+.studio-local-nav a[aria-current="page"]{color:var(--color-text);font-weight:700;text-decoration:underline;text-underline-offset:4px}
+.studio-intro{max-width:780px}
 .studio-section{max-width:1180px;margin:0 0 36px}
 .studio-section>p,.studio-connection p{max-width:780px}
 .studio-stories{display:grid;gap:4px}

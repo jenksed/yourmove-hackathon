@@ -1,8 +1,9 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Career Roles · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
-{{template "shell-open" "career-evidence"}}
-<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/career-evidence">Career Evidence</a><span aria-hidden="true">/</span><span>Role intelligence</span></nav>
-<div class="page-heading"><div><h1>One history, two roles</h1><p class="page-description">The same approved experiences, read against different requirements. Muse selects and explains; you decide what to use. Nothing here rewrites your evidence.</p></div></div>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Explore roles · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
+{{template "shell-open" "career-studio-child"}}
+<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/career-studio">Career Studio</a><span aria-hidden="true">/</span><span>Explore roles</span></nav>
+<div class="page-heading"><div><h1>Explore roles</h1><p class="page-description">The same approved experiences, read against different requirements. Muse selects and explains; you decide what to use. Nothing here rewrites your evidence.</p></div></div>
+{{template "studio-local-nav" "roles"}}
 {{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
 {{if not .Evidences}}
 <section><h2>No reviewed evidence yet</h2><p class="small-muted">Review at least one Career Evidence record before comparing roles. Review means you confirmed the record represents you.</p><p><a class="button button-primary" href="/career-evidence">Go to Career Evidence</a> <a class="button button-secondary" href="/career-discovery">Investigate an experience</a></p></section>

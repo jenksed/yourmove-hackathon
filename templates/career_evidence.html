@@ -1,16 +1,15 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f7f4"><title>Career Evidence · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
 {{template "shell-open" "career-evidence"}}
-<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/jobs">Opportunities</a><span aria-hidden="true">/</span><span>Career Evidence</span></nav>
+<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/career-studio">Career Studio</a><span aria-hidden="true">/</span>{{if .Current}}<a href="/career-evidence">Career Evidence</a><span aria-hidden="true">/</span><span>{{if .Current.Title}}{{.Current.Title}}{{else}}Untitled draft{{end}}</span>{{else}}<span>Career Evidence</span>{{end}}</nav>
 <div class="page-heading"><div><h1>Career Evidence</h1><p class="page-description">Your own situations, actions, and outcomes. Reviewed experiences can appear beside relevant application questions as references; you decide what to use.</p></div><div class="heading-actions"><a class="text-link" href="/answer-library">Answer Library →</a>{{if not .Current}}<form method="POST" action="/career-evidence"><button type="submit" class="button button-primary">Add experience</button></form>{{end}}</div></div>
+{{template "studio-local-nav" "evidence"}}
 {{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
-
-<p><a href="/career-discovery">Discover an experience with Muse →</a></p>
 
 {{if .Current}}
 <section class="career-evidence-editor" aria-labelledby="career-evidence-title">
-  <div class="career-evidence-editor-heading"><div><h2 id="career-evidence-title">{{if .Current.Title}}{{.Current.Title}}{{else}}Untitled draft{{end}}</h2><p class="small-muted">{{if eq .Current.Status "reviewed"}}Reviewed by you{{else}}Draft{{end}} · Revision {{.Current.Revision}}</p></div><a href="/career-evidence">All experiences</a></div>
-  {{if eq .Current.Status "reviewed"}}<p class="small-muted">You confirmed this record reflects your experience. This is applicant review, not independent verification. Saving changed content returns it to Draft.</p>{{else}}<p class="small-muted">Drafts can be incomplete. Review requires a title, situation, and actions.</p>{{end}}
+  <div class="career-evidence-editor-heading"><div><h2 id="career-evidence-title">{{if .Current.Title}}{{.Current.Title}}{{else}}Untitled draft{{end}}</h2>{{if eq .Current.Status "reviewed"}}<p class="evidence-status"><strong>Reviewed by you</strong> · Revision {{.Current.Revision}}</p>{{else}}<p class="evidence-status"><strong>Draft — needs your review</strong> · Revision {{.Current.Revision}}</p>{{end}}</div><div class="editor-return-links"><a href="/career-evidence">All experiences</a><a href="/career-studio">Return to Career Studio</a></div></div>
+  {{if eq .Current.Status "reviewed"}}<p class="small-muted">You confirmed this saved record reflects your experience. This is applicant review, not independent verification. Saving changed content without confirming review returns this record to Draft. Saving unchanged content keeps its review status.</p>{{else}}<p class="small-muted">Drafts can be incomplete. Review requires a title, situation, and actions. Saving keeps this record a draft until you confirm it below.</p>{{end}}
   <form method="POST" action="/career-evidence/{{.Current.ID}}/save" class="career-evidence-form" id="career-evidence-form">
     <input type="hidden" name="revision" value="{{.Current.Revision}}">
     <div class="field"><label for="career-title">Experience title</label><input id="career-title" name="title" value="{{.Current.Title}}" maxlength="160" autocomplete="off"></div>
@@ -26,7 +25,7 @@
     <div class="field"><label for="career-outcome">Actual outcome or impact</label><textarea id="career-outcome" name="outcome" rows="3" maxlength="3000">{{.Current.Outcome}}</textarea><small>Optional unless you select “Actual outcome recorded below.” No estimates are added.</small></div>
     <div class="field"><label for="career-source-notes">Source notes or supporting reference</label><textarea id="career-source-notes" name="source_notes" rows="3" maxlength="3000">{{.Current.SourceNotes}}</textarea><small>Notes only. YourMove does not open or fetch external references.</small></div>
     <label class="confirm-row career-evidence-review-confirm"><input type="checkbox" name="confirm_review" value="yes"><span>I confirm this record accurately describes my experience. Marking it reviewed does not mean a third party verified it.</span></label>
-    <div class="career-evidence-form-actions"><button type="submit" class="button button-primary">Save draft</button><button type="submit" class="button button-secondary" formaction="/career-evidence/{{.Current.ID}}/review">Mark as reviewed</button></div>
+    <div class="career-evidence-form-actions">{{if eq .Current.Status "reviewed"}}<button type="submit" class="button button-primary">Save changes</button><button type="submit" class="button button-secondary" formaction="/career-evidence/{{.Current.ID}}/review">Save and confirm reviewed</button>{{else}}<button type="submit" class="button button-primary">Save draft</button><button type="submit" class="button button-secondary" formaction="/career-evidence/{{.Current.ID}}/review">Confirm as reviewed</button>{{end}}</div>
   </form>
   {{if or .Current.SourceWriting .Current.SourceNotes}}
   <details class="career-evidence-source">
@@ -45,7 +44,19 @@
 </section>
 {{end}}
 
-{{if .Entries}}
+{{if .Current}}
+{{if gt (len .Entries) 1}}
+<section class="career-evidence-list" aria-label="Other saved career experiences">
+  <h2>Other saved experiences</h2>
+  {{range .Entries}}{{if ne .ID $.Current.ID}}
+  <article class="career-evidence-row">
+    <div><h3><a href="/career-evidence/{{.ID}}">{{if .Title}}{{.Title}}{{else}}Untitled draft{{end}}</a></h3><p>{{if eq .Status "reviewed"}}Reviewed by you{{else}}Draft{{end}}{{if .RoleContext}} · {{.RoleContext}}{{end}}{{if .EmployerContext}} · {{.EmployerContext}}{{end}}</p></div>
+    <div class="career-evidence-row-outcome">{{if eq .OutcomeState "recorded"}}<details><summary>Actual outcome</summary><p>{{.Outcome}}</p></details>{{else if eq .OutcomeState "unknown"}}Outcome: Unknown{{else}}Outcome: Not recorded{{end}}</div>
+  </article>
+  {{end}}{{end}}
+</section>
+{{end}}
+{{else if .Entries}}
 <section class="career-evidence-list" aria-label="Saved career experiences">
   <h2>Saved experiences</h2>
   {{range .Entries}}
@@ -55,7 +66,7 @@
   </article>
   {{end}}
 </section>
-{{else if not .Current}}
+{{else}}
 <section class="inline-empty career-evidence-empty"><h2>No experiences saved yet</h2><p>Add a draft when you remember an example. It can be incomplete and you can review it later.</p></section>
 {{end}}
 {{template "shell-close" .}}</body></html>

@@ -151,6 +151,59 @@ func TestDiscoveryRetryRejectsUnexpectedAnswer(t *testing.T) {
 	}
 }
 
+func TestDiscoveryInterviewComposition(t *testing.T) {
+	a, _ := testWorkspace(t)
+	raw := `{"resume":{"id":"resume","kind":"document_excerpt","text":"Synthetic support bullets"},"leads":[{"id":"lead-1","title":"Database work","why":"May reveal method"},{"id":"lead-2","title":"Customer work","why":"May reveal collaboration"},{"id":"lead-3","title":"Linux work","why":"May reveal diagnosis"}],"selected_lead_id":"lead-1","responses":[{"question":"What did you personally do first?","source":{"id":"response-1","kind":"self_report","text":"Synthetic first response."}},{"question":"What happened next?","source":{"id":"response-2","kind":"self_report","text":"Synthetic second response."}}],"proposal":{"title":"Synthetic proposal","experience":"Synthetic experience","claim":"Synthetic claim","source_id":"response-1","quote":"Synthetic first response.","unresolved":["Synthetic unknown."]}}`
+	notice := "Muse response received in 1.2 seconds. Proposals need your review. Tokens: 10 input / 20 output; estimated inference $0.00010; finish: stop."
+	if _, err := a.db.Exec(`INSERT INTO career_discovery(state,notice,created_at) VALUES(?,'synthetic','synthetic')`, raw); err != nil {
+		t.Fatal(err)
+	}
+	// Seed the telemetry-bearing notice through the same column the page reads.
+	if _, err := a.db.Exec(`UPDATE career_discovery SET notice=? WHERE id=1`, notice); err != nil {
+		t.Fatal(err)
+	}
+	mux := newMux(a)
+	page := func() string {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "http://localhost/career-discovery/1", nil))
+		if rec.Code != 200 {
+			t.Fatal("interview", rec.Code)
+		}
+		return rec.Body.String()
+	}
+	body := page()
+	for _, want := range []string{
+		`<a href="/career-studio">Career Studio</a>`, `aria-current="page">Career Discovery`,
+		"Your interview responses", "Create evidence draft for review",
+		"Explore another experience", "Request details", "Tokens: 10 input",
+		`action="/career-discovery/1/explore"`, "Synthetic second response.",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatal("interview page missing", want)
+		}
+	}
+	if strings.Contains(body, "What we have learned") {
+		t.Fatal("transcript heading was not renamed")
+	}
+	// The proposal action precedes the transcript in the reading column, and
+	// the global Studio link is a parent indicator, not the current page.
+	if strings.Index(body, "Create evidence draft for review") > strings.Index(body, "Your interview responses") {
+		t.Fatal("transcript precedes the proposal action")
+	}
+	if strings.Contains(body, `aria-current="page" href="/career-studio"`) || strings.Contains(body, `href="/career-studio" aria-current`) {
+		t.Fatal("child route falsely marks the Studio hub as current")
+	}
+	// A failure notice without telemetry renders whole, with no disclosure.
+	failure := "Muse request did not produce usable interview output (provider unavailable). Your recorded input is saved; no evidence was approved."
+	if _, err := a.db.Exec(`UPDATE career_discovery SET notice=? WHERE id=1`, failure); err != nil {
+		t.Fatal(err)
+	}
+	body = page()
+	if !strings.Contains(body, failure) || strings.Contains(body, "Request details") {
+		t.Fatal("failure notice hidden or split")
+	}
+}
+
 func TestDiscoveryDraftRechecksStoredSource(t *testing.T) {
 	a, _ := testWorkspace(t)
 	mux := newMux(a)

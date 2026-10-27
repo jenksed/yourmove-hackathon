@@ -168,6 +168,75 @@ func TestCareerMirrorShowsDiscoveryAndRestrainedAbstention(t *testing.T) {
 	}
 }
 
+func TestStudioEligibilityGateAndSentCount(t *testing.T) {
+	a, _ := testWorkspace(t)
+	mux := newMux(a)
+	studio := func() string {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "http://localhost/career-studio", nil))
+		if rec.Code != 200 {
+			t.Fatal("studio", rec.Code)
+		}
+		return rec.Body.String()
+	}
+	now := "2026-10-26T10:00:00Z"
+	if _, err := a.db.Exec(`INSERT INTO career_evidence(title,situation,status,revision,created_at,updated_at) VALUES('Half-remembered example','Synthetic context.','draft',1,?,?)`, now, now); err != nil {
+		t.Fatal(err)
+	}
+	// Zero eligible: explanation and onward links, no request form.
+	body := studio()
+	if strings.Contains(body, `action="/career-connections/synthesize"`) {
+		t.Fatal("zero-eligible studio offers a synthesis request that must fail")
+	}
+	for _, want := range []string{"at least two reviewed", "Investigate an experience", "review your existing drafts", "1 draft record not yet reviewed"} {
+		if !strings.Contains(body, want) {
+			t.Fatal("zero-eligible studio missing", want)
+		}
+	}
+	// One eligible: still gated, but role exploration is named as available.
+	seedReviewedEvidence(t, a)
+	body = studio()
+	if strings.Contains(body, `action="/career-connections/synthesize"`) {
+		t.Fatal("one-eligible studio offers a synthesis request that must fail")
+	}
+	for _, want := range []string{"at least two reviewed", "explore roles", "outcome unknown to you", "Treated as unknown, not guessed"} {
+		if !strings.Contains(body, want) {
+			t.Fatal("one-eligible studio missing", want)
+		}
+	}
+	if strings.Contains(body, "outcome: unknown") || strings.Contains(body, "reviewed record(s)") {
+		t.Fatal("studio leaks raw outcome or count phrasing")
+	}
+	// Two eligible: the request form names the exact input scope.
+	seedSecondReviewed(t, a)
+	body = studio()
+	if !strings.Contains(body, `action="/career-connections/synthesize"`) || !strings.Contains(body, "Send 2 reviewed experiences to") {
+		t.Fatal("two-eligible studio consent count wrong")
+	}
+	// Six reviewed: the input caps at five and the total stays distinguished.
+	for i := 0; i < 4; i++ {
+		if _, err := a.db.Exec(`INSERT INTO career_evidence(title,situation,actions,outcome_state,status,revision,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)`,
+			"Synthetic extra", "Synthetic context.", "Synthetic actions.", "not_recorded", "reviewed", 1, now, now); err != nil {
+			t.Fatal(err)
+		}
+	}
+	body = studio()
+	if !strings.Contains(body, "Send 5 reviewed experiences to") || !strings.Contains(body, "You have 6 reviewed experiences; this request sends 5.") {
+		t.Fatal("capped sent count wrong")
+	}
+}
+
+func TestSplitNoticeKeepsFailuresVisible(t *testing.T) {
+	main, detail := splitNotice("Muse response received in 8.9 seconds. Proposals need your review. Tokens: 758 input / 2046 output; estimated inference $0.00881; finish: stop.")
+	if main != "Muse response received in 8.9 seconds. Proposals need your review." || detail != "Tokens: 758 input / 2046 output; estimated inference $0.00881; finish: stop." {
+		t.Fatalf("telemetry split wrong: %q / %q", main, detail)
+	}
+	failure := "Muse request did not produce usable interview output (provider unavailable). Your recorded input is saved; no evidence was approved."
+	if main, detail := splitNotice(failure); main != failure || detail != "" {
+		t.Fatalf("failure notice must render whole: %q / %q", main, detail)
+	}
+}
+
 func TestStudioRequiresTwoReviewed(t *testing.T) {
 	a, _ := testWorkspace(t)
 	seedReviewedEvidence(t, a)

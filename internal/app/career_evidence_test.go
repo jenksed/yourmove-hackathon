@@ -80,7 +80,7 @@ func TestCareerEvidenceDraftReviewRevisionAndRestart(t *testing.T) {
 	mux.ServeHTTP(page, request)
 	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), `action="/career-evidence/1/save"`) ||
 		!strings.Contains(page.Body.String(), `name="situation"`) || !strings.Contains(page.Body.String(), `name="actions"`) ||
-		!strings.Contains(page.Body.String(), "Mark as reviewed") || !strings.Contains(page.Body.String(), "Draft") {
+		!strings.Contains(page.Body.String(), "Confirm as reviewed") || !strings.Contains(page.Body.String(), "Draft") {
 		t.Fatalf("draft page is not a usable server-rendered form: %d %s", page.Code, page.Body.String())
 	}
 
@@ -172,6 +172,71 @@ func TestCareerEvidenceDraftReviewRevisionAndRestart(t *testing.T) {
 	}
 	if _, err := careerEvidenceByID(restarted.db, 1); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("deleted evidence still exists: %v", err)
+	}
+}
+
+func TestCareerEvidenceStateWordingAndUnchangedSave(t *testing.T) {
+	a, _ := testWorkspace(t)
+	mux := newMux(a)
+	if created := postCareerEvidence(mux, "/career-evidence", url.Values{}); created.Code != http.StatusSeeOther {
+		t.Fatal(created.Code)
+	}
+	content := careerEvidenceContent{Title: "Synthetic diagnosis", Situation: "Synthetic context.", Actions: "Synthetic actions.", OutcomeState: "unknown"}
+	if saved := postCareerEvidence(mux, "/career-evidence/1/save", careerEvidenceForm(1, content)); saved.Code != http.StatusSeeOther {
+		t.Fatal(saved.Code)
+	}
+	page := func() string {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "http://localhost/career-evidence/1", nil)
+		req.Host = "localhost"
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatal("detail", rec.Code)
+		}
+		return rec.Body.String()
+	}
+	draft := page()
+	for _, want := range []string{"Draft — needs your review", "Save draft", "Confirm as reviewed", "Return to Career Studio", `aria-current="page">Career Evidence`, "Saving keeps this record a draft"} {
+		if !strings.Contains(draft, want) {
+			t.Fatal("draft detail missing", want)
+		}
+	}
+	if strings.Contains(draft, "Other saved experiences") {
+		t.Fatal("single-record detail should rely on the All experiences link")
+	}
+	values := careerEvidenceForm(2, content)
+	values.Set("confirm_review", "yes")
+	if reviewed := postCareerEvidence(mux, "/career-evidence/1/review", values); reviewed.Code != http.StatusSeeOther {
+		t.Fatal(reviewed.Code)
+	}
+	body := page()
+	for _, want := range []string{"Reviewed by you", "Save changes", "Save and confirm reviewed", "Saving unchanged content keeps its review status"} {
+		if !strings.Contains(body, want) {
+			t.Fatal("reviewed detail missing", want)
+		}
+	}
+	if strings.Contains(body, "Confirm as reviewed") {
+		t.Fatal("reviewed detail keeps draft-only action wording")
+	}
+	// An unchanged ordinary save keeps Reviewed and the revision.
+	evidence, err := careerEvidenceByID(a.db, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved := postCareerEvidence(mux, "/career-evidence/1/save", careerEvidenceForm(evidence.Revision, content)); saved.Code != http.StatusSeeOther {
+		t.Fatal(saved.Code)
+	}
+	after, err := careerEvidenceByID(a.db, 1)
+	if err != nil || after.Status != "reviewed" || after.Revision != evidence.Revision {
+		t.Fatalf("unchanged save demoted or bumped: %+v", after)
+	}
+	// A second record subordinates the index behind "Other saved experiences".
+	if created := postCareerEvidence(mux, "/career-evidence", url.Values{}); created.Code != http.StatusSeeOther {
+		t.Fatal(created.Code)
+	}
+	body = page()
+	if !strings.Contains(body, "Other saved experiences") || strings.Count(body, `<article class="career-evidence-row">`) != 1 {
+		t.Fatal("detail index should list only the other record")
 	}
 }
 
