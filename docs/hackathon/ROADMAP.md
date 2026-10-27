@@ -47,10 +47,12 @@ Implemented and reported live-verified (2026-10-27 activation):
 - Event-only submission patch refreshed through HACK-005, applied
   clean with `--unidiff-zero`, rebuilt and fully tested.
 
-Open limitations include a TAM-side generated answer (available
-TAM-form questions carry no supportable claim; the attempt correctly
-returned insufficient), answer-artifact change awareness beyond
-letters, native Wails acceptance, and the Nov 2 demo freeze.
+Open limitations include answer-artifact change awareness beyond
+letters, native Wails acceptance, and the Nov 2 demo freeze. (The
+TAM-side generated answer landed on an Ashby Strategic CSM posting
+after a 13-posting survey; eligible-but-ungroundable questions
+correctly refused, and a transient provider 502 cluster cleared after
+cooldown.)
 
 Recheck repository state before changing these statuses.
 

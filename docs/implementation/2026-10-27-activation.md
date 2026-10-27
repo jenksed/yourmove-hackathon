@@ -45,18 +45,34 @@ behavior preserved: current provenance, no stale flags raised.
 - Cover letter draft: both evidence refs pinned at rev 2, leads with
   customer communication and ownership boundaries — substantively
   different framing from the TSE letter using identical facts.
-- Answer: attempted against the only AI-eligible question on available
-  TAM/CSM/AM postings ("Other background / referral"). Generation
-  returned `insufficient` with "Selected evidence cannot reasonably
-  support an answer." Nothing generated, nothing saved. Recorded as
-  correct refusal, not a product defect.
-- Surveyed postings (read-only intake + rendered preview, no fills):
-  Percona TAM manager (5 supported, all generic/closed), Linear CSM
-  Growth ("Technical Experience" ineligible: 2-word label), incident.io
-  CSE/Expansion AM (template forms, no narrative question), Pylon,
-  PostHog TCSM (posting gone, 0 controls), Monte Carlo (no TAM role).
-  Finding: most real TAM-form question sets expose no AI-eligible
-  narrative question. TAM-side generated answer remains OPEN.
+
+## TAM opportunity (Ashby Strategic Customer Success Manager, job 10)
+
+- Answer to "In 2-4 sentences, tell us about the most complex product
+  you've supported as a Customer Success Manager...": leads with the
+  billing story (customer communication precision), supports with the
+  MySQL story (technical-to-handoff translation), preserves "never ran
+  DDL" and unknown-outcome caveats. 8 trace claims: 4 pinned to
+  evidence 1 rev 2, 4 to evidence 2 rev 2, all with verbatim quotes and
+  response IDs. Adopt-check on the superseded first ticket correctly
+  refused (409); the completed generation saved locally as early
+  answer rev 1. Provenance sidecar: 2 rows. Substantively different
+  from the TSE answer (ownership-first vs diagnostics-first) on
+  identical facts.
+- Cover letter (draft 3, both evidence refs rev 2).
+- Path here: 13 postings surveyed across 9 orgs (read-only intake +
+  rendered preview, no fills). Eligible-but-ungroundable questions
+  correctly returned `insufficient` (Percona referral, Coder interest
+  twice). A transient provider-side output-validation cluster caused 4
+  consecutive 502s across prompts (including the known-good TSE
+  control); after cooldown the same TAM request completed with
+  finish-equivalent success. No product code changed for the demo.
+- Structural finding (no code changed): Greenhouse public_api custom
+  questions carry stable numeric IDs (`question_<id>`) that the
+  positional-ID guard rejects, so PagerDuty's groundable
+  incident-management question stays manual-only. Refining the guard
+  or the inspector ID scheme needs migration care — left for a
+  planned change, not demo surgery.
 
 ## Résumé and submission boundaries
 
@@ -70,10 +86,11 @@ behavior preserved: current provenance, no stale flags raised.
 
 - Full host `go test ./...` PASS, `-tags desktop` PASS, engine
   `go test ./...` PASS (2026-10-27, this checkout).
-- Controlled Chromium (headless Canary): roles wide + narrow, TSE job
-  Prepare, evidence overview captured and inspected; saved answer
-  shown excluded from transfer; "No submissions recorded".
-- Restart: server stopped, relaunched on the same workspace; evidence
-  (2 reviewed rev 2), early answer, 2 letters, 2 analyses, provenance
-  rows all retained and served.
+- Controlled Chromium (headless Canary): roles wide + narrow, TSE
+  and TAM job Prepare panels, evidence overview captured and
+  inspected; saved answers shown excluded from transfer;
+  "No submissions recorded".
+- Restart (twice): server stopped, relaunched on the same workspace;
+  evidence (2 reviewed rev 2), 2 early answers, 3 letters, 2 analyses,
+  provenance rows (jobs 3, 10) all retained and served.
 - Native Wails acceptance NOT VERIFIED (not claimed).
