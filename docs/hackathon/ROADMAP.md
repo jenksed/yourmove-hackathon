@@ -27,7 +27,7 @@ Judges should see a new category of career software, not another résumé chatbo
 **Independent engine:** `jenksed/yourmove-career-discovery`  
 **Verified checkpoint:** `8dd7122`
 
-Implemented and reported live-verified:
+Implemented and reported live-verified (2026-10-27 activation):
 
 - Muse-powered multi-experience investigation leads.
 - Candidate-selected investigations.
@@ -39,8 +39,18 @@ Implemented and reported live-verified:
 - Evidence-powered cover letters.
 - Cover-letter evidence-revision tracking.
 - Redesigned initial investigator workspace.
+- Cross-role intelligence: TSE/TAM analyses from the same two
+  approved records, substantively different with preserved unknowns.
+- TSE application package: grounded answer (8 trace claims, unresolved
+  listed, saved) plus evidence-pinned cover letter.
+- TAM cover letter with ownership-first framing on identical facts.
+- Event-only submission patch refreshed through HACK-005, applied
+  clean with `--unidiff-zero`, rebuilt and fully tested.
 
-Open limitations include cross-role intelligence, multiple-story synthesis, answer-artifact change awareness, complete application packages, native Wails acceptance, and submission reconstruction.
+Open limitations include a TAM-side generated answer (available
+TAM-form questions carry no supportable claim; the attempt correctly
+returned insufficient), answer-artifact change awareness beyond
+letters, native Wails acceptance, and the Nov 2 demo freeze.
 
 Recheck repository state before changing these statuses.
 
