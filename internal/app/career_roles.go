@@ -48,6 +48,89 @@ func careerRoleByKey(key string) (discovery.RoleProfile, bool) {
 	return discovery.RoleProfile{}, false
 }
 
+// roleProfileFromJob derives a comparison profile from a saved opportunity
+// instead of a hardcoded demo role. Requirements come only from bullet-like
+// description lines; prose without parseable requirement bullets is refused
+// rather than split into invented requirements. The comparison itself stays
+// a hypothesis: AnalyzeRole validates that unmet items echo these strings.
+func roleProfileFromJob(job Job) (discovery.RoleProfile, error) {
+	title := strings.TrimSpace(job.Title)
+	if title == "" || len(title) > 160 {
+		return discovery.RoleProfile{}, errors.New("saved opportunity needs a title before comparison")
+	}
+	requirements := parseJobRequirements(job.Description)
+	if len(requirements) < 2 {
+		return discovery.RoleProfile{}, errors.New("saved opportunity needs at least two requirement bullets before comparison")
+	}
+	focus := strings.TrimSpace(job.Company)
+	headline := firstDescriptionLine(job.Description)
+	if headline != "" {
+		if focus != "" {
+			focus += " — "
+		}
+		focus += headline
+	}
+	if len(focus) > 600 {
+		focus = focus[:600]
+	}
+	if strings.TrimSpace(focus) == "" {
+		focus = title
+	}
+	return discovery.RoleProfile{
+		Key:          fmt.Sprintf("saved-job-%d", job.ID),
+		Title:        title,
+		Focus:        focus,
+		Requirements: requirements,
+	}, nil
+}
+
+// parseJobRequirements keeps bullet-like description lines (dash, star,
+// bullet, or numbered markers) between 4 and 200 bytes, deduplicated and
+// capped at the engine's per-role maximum. Plain prose lines are ignored:
+// without a bullet marker there is no auditable requirement boundary.
+func parseJobRequirements(description string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, raw := range strings.Split(description, "\n") {
+		line := strings.TrimSpace(raw)
+		marked := false
+		for _, marker := range []string{"-", "*", "•", "·"} {
+			if strings.HasPrefix(line, marker+" ") || strings.HasPrefix(line, marker+"\t") {
+				line = strings.TrimSpace(line[len(marker):])
+				marked = true
+				break
+			}
+		}
+		if !marked && len(line) >= 3 && line[0] >= '0' && line[0] <= '9' {
+			if dot := strings.IndexAny(line, ".)"); dot > 0 && dot <= 3 {
+				if rest := strings.TrimSpace(line[dot+1:]); rest != "" {
+					line = rest
+					marked = true
+				}
+			}
+		}
+		if !marked || len(line) < 4 || len(line) > 200 || seen[strings.ToLower(line)] {
+			continue
+		}
+		seen[strings.ToLower(line)] = true
+		out = append(out, line)
+		if len(out) >= discovery.MaxRoleRequirements {
+			break
+		}
+	}
+	return out
+}
+
+func firstDescriptionLine(description string) string {
+	for _, line := range strings.Split(description, "\n") {
+		line = strings.TrimSpace(strings.Trim(line, "-*•· \t"))
+		if line != "" && len(line) <= 200 {
+			return line
+		}
+	}
+	return ""
+}
+
 func initializeRoleAnalyses(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS career_role_analyses (
 	 role_key TEXT PRIMARY KEY, evidence_hash TEXT NOT NULL DEFAULT '', analysis TEXT NOT NULL DEFAULT '',
@@ -138,7 +221,7 @@ func (a *App) careerRolesPage(w http.ResponseWriter, r *http.Request) {
 	}
 	hash := roleEvidenceHash(evidences)
 	page := careerRolesPage{Evidences: evidences, Destination: discoveryDestination()}
-	for _, role := range careerRoleProfiles() {
+	appendRoleEntry := func(role discovery.RoleProfile, job *Job) {
 		entry := roleAnalysisPage{Role: role, Hash: hash}
 		var raw, notice string
 		err := a.db.QueryRow(`SELECT analysis,notice FROM career_role_analyses WHERE role_key=? AND evidence_hash=?`, role.Key, hash).Scan(&raw, &notice)
@@ -149,14 +232,32 @@ func (a *App) careerRolesPage(w http.ResponseWriter, r *http.Request) {
 				entry.Notice = notice
 			}
 		}
-		job, err := a.roleOpportunity(role.Key)
-		if err == nil {
-			entry.Job = job
-			if job != nil {
-				entry.Flags = a.savedAnswerProvenance(*job)
-			}
+		entry.Job = job
+		if job != nil {
+			entry.Flags = a.savedAnswerProvenance(*job)
 		}
 		page.Roles = append(page.Roles, entry)
+	}
+	for _, role := range careerRoleProfiles() {
+		job, err := a.roleOpportunity(role.Key)
+		if err == nil {
+			appendRoleEntry(role, job)
+		} else {
+			appendRoleEntry(role, nil)
+		}
+	}
+	// Saved opportunities with parseable requirement bullets compare through
+	// the same engine path as the demo roles. Unparseable descriptions are
+	// omitted here; their opportunity page stays the path for answers.
+	if jobs, err := a.allJobs(); err == nil {
+		for _, job := range jobs {
+			profile, err := roleProfileFromJob(job)
+			if err != nil {
+				continue
+			}
+			jobCopy := job
+			appendRoleEntry(profile, &jobCopy)
+		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, no-store")
@@ -210,8 +311,22 @@ func (a *App) analyzeCareerRole(w http.ResponseWriter, r *http.Request) {
 	defer a.discoveryMu.Unlock()
 	role, ok := careerRoleByKey(r.PathValue("role"))
 	if !ok {
-		http.NotFound(w, r)
-		return
+		// Saved-opportunity profiles use keys like saved-job-7.
+		var jobID int64
+		if _, err := fmt.Sscanf(r.PathValue("role"), "saved-job-%d", &jobID); err != nil || jobID < 1 {
+			http.NotFound(w, r)
+			return
+		}
+		saved, err := a.jobByID(jobID)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		var profileErr error
+		if role, profileErr = roleProfileFromJob(saved); profileErr != nil {
+			http.Error(w, "This opportunity cannot be compared yet: "+profileErr.Error()+". Add requirement bullets to its description.", 422)
+			return
+		}
 	}
 	evidences, err := reviewedRoleEvidences(a)
 	if err != nil || len(evidences) == 0 {

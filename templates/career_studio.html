@@ -33,17 +33,45 @@
   {{if .Drafts}}<p class="small-muted">{{len .Drafts}} draft record(s) not yet reviewed — they are excluded from every interpretation below. <a href="/career-evidence">Review drafts</a></p>{{end}}
 </section>
 
+<section id="mirror" class="studio-section">
+  <h2>Career Mirror <span class="studio-kind studio-kind-hypothesis">AI hypothesis — not approved fact</span></h2>
+  <p>What investigation uncovered across your reviewed history — and what it did not. Every claim below links to the exact statements it rests on. Rejecting an interpretation never changes your reviewed records.</p>
+  {{if .Synthesis}}
+    {{if .Connections}}
+    {{range .Connections}}
+    <article class="story-card">
+      <h3>{{.Capability}}</h3>
+      <p><strong>What your reviewed records establish.</strong></p>
+      <ul>{{range .Supports}}<li><a href="/career-evidence/{{.EvidenceID}}">{{$.EvidenceTitle .EvidenceID}}</a> (revision {{.EvidenceRevision}}): {{.Action}} — <q>{{.Quote}}</q></li>{{end}}</ul>
+      <p><strong>What we uncovered across them.</strong> {{.Interpretation}} {{.Relationship}}</p>
+      {{if .CandidateUse}}<p><strong>What this could mean for your applications.</strong> {{.CandidateUse}} <a href="#roles">See where it applies</a></p>{{end}}
+      <h4>What still is not established</h4>
+      <ul>{{range .Limitations}}<li>{{.}}</li>{{end}}</ul>
+      <p><a href="#connection-{{.ID}}">Inspect sources and challenge this interpretation</a></p>
+    </article>
+    {{end}}
+    {{else}}
+    <p>Muse examined {{len .Evidences}} reviewed record(s) and found no defensible cross-experience connection, so nothing is presented as a discovery. Shared keywords alone are not a connection. <a href="/career-discovery">Keep investigating</a></p>
+    {{end}}
+  {{else}}
+  <p class="small-muted">No cross-experience synthesis saved yet. The mirror appears after you look for connections below.</p>
+  {{end}}
+</section>
+
 <section id="connections" class="studio-section">
   <h2>Connected capabilities <span class="studio-kind studio-kind-hypothesis">AI hypothesis — not approved fact</span></h2>
   {{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
   {{if lt (len .Evidences) 2}}
-  <p class="small-muted">Connections need at least two reviewed experiences. Review another record to look across your history.</p>
-  {{else}}
+  <p class="small-muted">Connections need at least two reviewed experiences. Review another record to look across your history.{{if .Synthesis}} A previous synthesis is shown below for reference; it may depend on superseded evidence until you re-run it.{{end}}</p>
+  {{end}}
+  {{if and .Synthesis (lt (len .Evidences) 2)}}{{if .Stale}}<p class="studio-alert" role="alert">Supporting evidence changed since this synthesis. The interpretation below may depend on superseded evidence — re-run the synthesis before relying on it. Saved answers and letters were not rewritten.</p>{{end}}{{end}}
+  {{if ge (len .Evidences) 2}}
   {{if .Stale}}<p class="studio-alert" role="alert">Supporting evidence changed since this synthesis. The interpretation below may depend on superseded evidence — re-run the synthesis before relying on it. Saved answers and letters were not rewritten.</p>{{end}}
+  {{end}}
   {{if .Synthesis}}
     {{if not .Connections}}<p>Muse found no defensible connection across these records. Shared keywords alone are not a connection, so nothing was invented.</p>{{end}}
     {{range .Connections}}
-    <article class="story-card studio-connection">
+    <article class="story-card studio-connection" id="connection-{{.ID}}">
       <h3>{{.Capability}}</h3>
       <p>{{.Interpretation}}</p>
       <p><strong>How these experiences connect.</strong> {{.Relationship}}</p>
@@ -75,7 +103,6 @@
     <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send {{len .Evidences}} reviewed record(s) to {{.Destination}} to look for connections across my experiences. Interpretations remain hypotheses until I judge them.</span></label>
     <button class="button button-primary" type="submit">{{if .Synthesis}}Re-run synthesis{{else}}Look for connections{{end}}</button>
   </form>
-  {{end}}
 </section>
 
 <section id="roles" class="studio-section">

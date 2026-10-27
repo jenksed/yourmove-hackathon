@@ -84,6 +84,90 @@ func TestStudioSynthesisChallengeStaleAndRestart(t *testing.T) {
 	}
 }
 
+func TestStudioKeepsSavedSynthesisVisibleAfterDraftDemotion(t *testing.T) {
+	a, _ := testWorkspace(t)
+	seedReviewedEvidence(t, a)
+	seedSecondReviewed(t, a)
+	a.discoveryGenerate = connGenerate
+	mux := newMux(a)
+
+	if got := postCareerEvidence(mux, "/career-connections/synthesize", url.Values{"consent": {"yes"}}); got.Code != 303 {
+		t.Fatal("synthesize", got.Code, got.Body.String())
+	}
+	if got := postCareerEvidence(mux, "/career-connections/conn-1/challenge", url.Values{"state": {"questioned"}, "note": {"motive goes too far"}}); got.Code != 303 {
+		t.Fatal("challenge", got.Code, got.Body.String())
+	}
+	// A candidate correction returns the record to draft, leaving one
+	// reviewed record. The saved synthesis and challenge must stay visible
+	// with a stale warning instead of disappearing behind the two-record gate.
+	if _, err := a.db.Exec(`UPDATE career_evidence SET status='draft',revision=3 WHERE id=1`); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "http://localhost/career-studio", nil))
+	if rec.Code != 200 {
+		t.Fatal("studio", rec.Code)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{"Cross-functional technical problem-solving", "motive goes too far", "Supporting evidence changed", "A previous synthesis is shown below"} {
+		if !strings.Contains(body, want) {
+			t.Fatal("studio hid demoted synthesis piece", want)
+		}
+	}
+}
+
+// TestCareerMirrorShowsDiscoveryAndRestrainedAbstention covers both Bet C
+// acceptance outcomes from the same Studio data: a useful discovery the
+// candidate can inspect (sources, use, limits, challenge link) and an honest
+// no-connection result that presents nothing as a discovery.
+func TestCareerMirrorShowsDiscoveryAndRestrainedAbstention(t *testing.T) {
+	a, _ := testWorkspace(t)
+	seedReviewedEvidence(t, a)
+	seedSecondReviewed(t, a)
+	a.discoveryGenerate = connGenerate
+	mux := newMux(a)
+	if got := postCareerEvidence(mux, "/career-connections/synthesize", url.Values{"consent": {"yes"}}); got.Code != 303 {
+		t.Fatal("synthesize", got.Code, got.Body.String())
+	}
+	studio := func() string {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "http://localhost/career-studio", nil))
+		if rec.Code != 200 {
+			t.Fatal("studio", rec.Code)
+		}
+		return rec.Body.String()
+	}
+	body := studio()
+	for _, want := range []string{
+		"Career Mirror",
+		"What your reviewed records establish",
+		"What we uncovered across them",
+		"What this could mean for your applications",
+		"I can credibly say I diagnose problems",
+		"What still is not established",
+		"Production change ownership stayed with other teams",
+		`href="#connection-conn-1"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatal("mirror missing discovery piece", want)
+		}
+	}
+	// Restrained case: re-run synthesis with no defensible connection.
+	a.discoveryGenerate = func(context.Context, string, string) (string, error) {
+		return `{"connections":[]}`, nil
+	}
+	if got := postCareerEvidence(mux, "/career-connections/synthesize", url.Values{"consent": {"yes"}}); got.Code != 303 {
+		t.Fatal("re-synthesize", got.Code, got.Body.String())
+	}
+	body = studio()
+	if !strings.Contains(body, "found no defensible cross-experience connection, so nothing is presented as a discovery") {
+		t.Fatal("mirror missing restrained outcome")
+	}
+	if strings.Contains(body, "What we uncovered across them") {
+		t.Fatal("mirror presents a discovery after abstention")
+	}
+}
+
 func TestStudioRequiresTwoReviewed(t *testing.T) {
 	a, _ := testWorkspace(t)
 	seedReviewedEvidence(t, a)
