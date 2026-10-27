@@ -65,9 +65,10 @@ type roleAnalysisPage struct {
 }
 
 type careerRolesPage struct {
-	Roles     []roleAnalysisPage
-	Evidences []CareerEvidence
-	Notice    string
+	Roles       []roleAnalysisPage
+	Evidences   []CareerEvidence
+	Notice      string
+	Destination string
 }
 
 func (p careerRolesPage) EvidenceTitle(id int64) string {
@@ -136,7 +137,7 @@ func (a *App) careerRolesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hash := roleEvidenceHash(evidences)
-	page := careerRolesPage{Evidences: evidences}
+	page := careerRolesPage{Evidences: evidences, Destination: discoveryDestination()}
 	for _, role := range careerRoleProfiles() {
 		entry := roleAnalysisPage{Role: role, Hash: hash}
 		var raw, notice string

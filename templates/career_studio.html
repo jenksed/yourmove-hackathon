@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Career Studio · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
+{{template "shell-open" "career-studio"}}
+<div class="page-heading"><div><h1>Your career, understood as a whole</h1><p class="page-description">What you have established, what YourMove is beginning to understand across your experiences, and where you can challenge it. You remain the authority over your history.</p></div></div>
+<nav class="studio-journey" aria-label="Career journey">
+  <a href="/career-discovery">1 · Investigate</a><span aria-hidden="true">→</span>
+  <a href="#understand">2 · Understand</a><span aria-hidden="true">→</span>
+  <a href="#connections">3 · Challenge</a><span aria-hidden="true">→</span>
+  <a href="#roles">4 · Explore roles</a><span aria-hidden="true">→</span>
+  <a href="#prepare">5 · Prepare applications</a>
+</nav>
+
+<section id="understand" class="studio-section">
+  <h2>What you have established</h2>
+  {{if .Evidences}}
+  <p>These are your reviewed experiences — records you confirmed represent you. AI interpretations below never change them.</p>
+  <div class="studio-stories">
+  {{range .Evidences}}
+    <article class="story-card">
+      <h3><a href="/career-evidence/{{.ID}}">{{.Title}}</a></h3>
+      <p class="small-muted">Reviewed · revision {{.Revision}}{{if .Period}} · {{.Period}}{{end}} · outcome: {{.OutcomeState}}</p>
+      <p><strong>Situation.</strong> {{.Situation}}</p>
+      <p><strong>Your actions.</strong> {{.Actions}}</p>
+      {{if eq .OutcomeState "recorded"}}<p><strong>Outcome.</strong> {{.Outcome}}</p>{{else}}<p class="small-muted">Outcome not established — treated as unknown, not guessed.</p>{{end}}
+      <p><a href="/career-evidence/{{.ID}}">Inspect or correct this record</a></p>
+    </article>
+  {{end}}
+  </div>
+  {{else}}
+  <p>No reviewed experiences yet. Investigate an experience and review what Muse proposes — nothing counts as established until you review it.</p>
+  <p><a class="button button-primary" href="/career-discovery">Investigate an experience</a> <a class="button button-secondary" href="/career-evidence">Open Career Evidence</a></p>
+  {{end}}
+  {{if .Drafts}}<p class="small-muted">{{len .Drafts}} draft record(s) not yet reviewed — they are excluded from every interpretation below. <a href="/career-evidence">Review drafts</a></p>{{end}}
+</section>
+
+<section id="connections" class="studio-section">
+  <h2>Connected capabilities <span class="studio-kind studio-kind-hypothesis">AI hypothesis — not approved fact</span></h2>
+  {{if .Notice}}<p class="local-save-confirmation" role="status">{{.Notice}}</p>{{end}}
+  {{if lt (len .Evidences) 2}}
+  <p class="small-muted">Connections need at least two reviewed experiences. Review another record to look across your history.</p>
+  {{else}}
+  {{if .Stale}}<p class="studio-alert" role="alert">Supporting evidence changed since this synthesis. The interpretation below may depend on superseded evidence — re-run the synthesis before relying on it. Saved answers and letters were not rewritten.</p>{{end}}
+  {{if .Synthesis}}
+    {{if not .Connections}}<p>Muse found no defensible connection across these records. Shared keywords alone are not a connection, so nothing was invented.</p>{{end}}
+    {{range .Connections}}
+    <article class="story-card studio-connection">
+      <h3>{{.Capability}}</h3>
+      <p>{{.Interpretation}}</p>
+      <p><strong>How these experiences connect.</strong> {{.Relationship}}</p>
+      {{if .Stale}}<p class="studio-alert" role="alert">A supporting record has changed since this was written. Treat this as needing review.</p>{{end}}
+      {{if eq .Challenge "unsupported"}}<p class="studio-alert" role="alert">You marked this interpretation <strong>unsupported</strong>. It stays visible for audit, is not treated as established, and should not be used in application materials.</p>
+      {{else if eq .Challenge "questioned"}}<p class="studio-alert">You marked this interpretation <strong>questionable</strong>. It remains a hypothesis under challenge{{if .Note}} — your note: “{{.Note}}”{{end}}.</p>{{end}}
+      <h4>What supports this — your actual actions</h4>
+      <ul>{{range .Supports}}<li><a href="/career-evidence/{{.EvidenceID}}">{{$.EvidenceTitle .EvidenceID}}</a> (revision {{.EvidenceRevision}}): {{.Action}}<br><q>{{.Quote}}</q> <span class="small-muted">— exact recorded statement, source-linked</span></li>{{end}}</ul>
+      {{if .CandidateUse}}<p><strong>How you can use this:</strong> {{.CandidateUse}}</p>{{end}}
+      <h4>What this does not establish</h4>
+      <ul>{{range .Limitations}}<li>{{.}}</li>{{end}}</ul>
+      {{if .FollowUp}}<p><strong>A question that could strengthen or disprove this:</strong> {{.FollowUp}} <a href="/career-discovery">Investigate it</a></p>{{end}}
+      <form method="POST" action="/career-connections/{{.ID}}/challenge" class="studio-challenge">
+        <fieldset><legend>Challenge this interpretation</legend>
+          <label><input type="radio" name="state" value="questioned" {{if eq .Challenge "questioned"}}checked{{end}}> Questionable — I am not convinced</label>
+          <label><input type="radio" name="state" value="unsupported" {{if eq .Challenge "unsupported"}}checked{{end}}> Unsupported — this does not represent me</label>
+          <label><input type="radio" name="state" value="" {{if eq .Challenge ""}}checked{{end}}> No challenge</label>
+          <label>Note (optional) <input type="text" name="note" value="{{.Note}}" maxlength="500"></label>
+          <button class="button button-secondary" type="submit">Save my challenge</button>
+        </fieldset>
+      </form>
+      <p class="small-muted">Fact vs inference: the quotations above are your reviewed statements. The capability name, interpretation, and relationship are Muse's hypothesis. Challenging never edits your evidence; correcting a record is done on its own page and will mark this interpretation for review.</p>
+    </article>
+    {{end}}
+  {{else}}
+  <p class="small-muted">No cross-experience synthesis saved yet. Muse will examine {{len .Evidences}} reviewed record(s) together and must quote your exact statements for every connection it proposes.</p>
+  {{end}}
+  <form method="POST" action="/career-connections/synthesize">
+    <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send {{len .Evidences}} reviewed record(s) to {{.Destination}} to look for connections across my experiences. Interpretations remain hypotheses until I judge them.</span></label>
+    <button class="button button-primary" type="submit">{{if .Synthesis}}Re-run synthesis{{else}}Look for connections{{end}}</button>
+  </form>
+  {{end}}
+</section>
+
+<section id="roles" class="studio-section">
+  <h2>Explore career directions</h2>
+  <p>The same approved history, read against different requirements. No fit percentages; explanations and gaps only.</p>
+  {{range .Roles}}
+  <article class="story-card">
+    <h3>{{.Role.Title}}</h3>
+    <p>{{.Role.Focus}}</p>
+    {{if .Analysis}}<ul>{{range .Analysis.Items}}{{if .Relevant}}<li><strong>{{$.EvidenceTitle .EvidenceID}}</strong> — {{.Explanation}}</li>{{end}}{{end}}{{range .Analysis.Unmet}}<li>{{.}} — no approved experience supports this yet.</li>{{end}}</ul>
+    {{else}}<p class="small-muted">No comparison saved for the current evidence set.</p>{{end}}
+    <p><a class="button button-secondary" href="/career-roles">Compare roles in detail</a>
+    {{if .Job}} <a class="button button-secondary" href="/jobs/{{.Job.ID}}#prepare">Open opportunity: {{.Job.Title}}</a>{{end}}</p>
+    {{if .Flags}}<h4>Saved materials and their evidence basis</h4><ul>{{range .Flags}}<li><strong>{{.Label}}</strong> — {{.State}}: {{.Detail}}</li>{{end}}</ul>{{end}}
+  </article>
+  {{end}}
+</section>
+
+<section id="prepare" class="studio-section">
+  <h2>Prepare applications</h2>
+  <p>Evidence-grounded résumé selection, answers, and cover letters live on each opportunity. Drafts stay drafts; nothing is submitted to an employer from YourMove.</p>
+  <p><a class="button button-primary" href="/jobs">Open opportunities</a> <a class="button button-secondary" href="/career-roles">Create a demo TSE or TAM opportunity</a></p>
+  {{if .ChallengeN}}<p class="small-muted">You have {{.ChallengeN}} challenged interpretation(s). Challenged hypotheses are not approved evidence and are excluded from what counts as established above.</p>{{end}}
+</section>
+{{template "shell-close" .}}</body></html>

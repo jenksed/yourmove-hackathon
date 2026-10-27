@@ -11,12 +11,12 @@
     <section aria-labelledby="story-ready"><h2 id="story-ready">Your evidence draft is ready for review</h2><p class="small-muted">Read it as a story. Correct anything that does not sound like you, then approve it in Career Evidence.</p><p><a class="button button-primary" href="/career-evidence/{{.EvidenceID}}">Review saved evidence</a></p></section>
   {{else if .NeedsLeads}}
     <section aria-labelledby="leads-retry"><h2 id="leads-retry">Your excerpt is saved</h2><p class="small-muted">Muse has not identified investigation leads yet. Retry sends only the saved excerpt.</p>
-      <form method="POST" action="/career-discovery/{{.ID}}/leads"><input type="hidden" name="revision" value="{{.Revision}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send the saved résumé excerpt to Meta to identify investigation leads (muse-spark-1.3, standard mode).</span></label><button class="button button-primary" type="submit">Find investigation leads</button></form></section>
+      <form method="POST" action="/career-discovery/{{.ID}}/leads"><input type="hidden" name="revision" value="{{.Revision}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send the saved résumé excerpt to {{.Destination}} to identify investigation leads.</span></label><button class="button button-primary" type="submit">Find investigation leads</button></form></section>
   {{else if .LeadPicker}}
     <section aria-labelledby="leads-title"><h2 id="leads-title">Where should we investigate?</h2><p class="small-muted">Muse read your excerpt and sees these threads. Each “why” is a hypothesis to test, not a fact about you. Pick one; you can return for the others.</p>
       <div class="lead-list">{{range .State.Leads}}
         <article class="lead-card"><h3>{{.Title}}</h3><p>{{.Why}}</p>
-          <form method="POST" action="/career-discovery/{{$.ID}}/select"><input type="hidden" name="revision" value="{{$.Revision}}"><input type="hidden" name="lead_id" value="{{.ID}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send my excerpt and this choice to Meta to begin this investigation (muse-spark-1.3, standard mode).</span></label><button class="button button-primary" type="submit">Investigate this</button></form>
+          <form method="POST" action="/career-discovery/{{$.ID}}/select"><input type="hidden" name="revision" value="{{$.Revision}}"><input type="hidden" name="lead_id" value="{{.ID}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send my excerpt and this choice to {{$.Destination}} to begin this investigation.</span></label><button class="button button-primary" type="submit">Investigate this</button></form>
         </article>{{end}}</div></section>
   {{else}}
     {{if .State.SelectedLead}}<p class="investigator-focus">Investigating: <strong>{{.State.SelectedLead.Title}}</strong></p>{{end}}
@@ -28,10 +28,10 @@
     {{if .CanAnswer}}<section class="question-card" aria-labelledby="current-question"><p class="story-kicker">Muse asks · one question at a time</p><h2 id="current-question" class="question-text">{{.State.Question}}</h2>
       <form method="POST" action="/career-discovery/{{.ID}}/next" class="career-evidence-form"><input type="hidden" name="revision" value="{{.Revision}}">
         <div class="field"><label for="discovery-answer">Your response, in your own words</label><textarea id="discovery-answer" name="answer" rows="6" maxlength="2000" required></textarea><small>Specifics help: what you personally did, how you decided, who else was involved, and what you do not know.</small></div>
-        <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send this response, the résumé excerpt, and earlier interview responses to Meta for this request (muse-spark-1.3, standard mode).</span></label>
+        <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send this response, the résumé excerpt, and earlier interview responses to {{.Destination}} for this request.</span></label>
         <button class="button button-primary" type="submit">Answer and continue</button>
       </form></section>
-    {{else if not .State.Question}}<form method="POST" action="/career-discovery/{{.ID}}/next"><input type="hidden" name="revision" value="{{.Revision}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send the saved interview to Meta for another request.</span></label><button class="button button-secondary" type="submit">Retry Muse request</button></form>
+    {{else if not .State.Question}}<form method="POST" action="/career-discovery/{{.ID}}/next"><input type="hidden" name="revision" value="{{.Revision}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send the saved interview to {{.Destination}} for another request.</span></label><button class="button button-secondary" type="submit">Retry Muse request</button></form>
     {{else}}<p>This investigation reached its six-response limit. Review the proposed story above, or explore another lead from the panel.</p>{{end}}
   {{end}}
   </div>
@@ -45,7 +45,7 @@
       {{else}}<p class="small-muted">Outcomes and responsibilities stay unknown until you establish them. Muse will not invent them.</p>{{end}}
     </section>
     {{if .State.Leads}}<section><h2>Investigation leads</h2><ul class="aside-leads">{{range .State.Leads}}<li>{{if eq .ID $.State.SelectedLeadID}}<strong>{{.Title}}</strong> · investigating{{else}}{{.Title}}{{end}}</li>{{end}}</ul>
-      {{if or .EvidenceID (not .LeadPicker)}}<p class="small-muted">Explore another lead in a fresh investigation. This one stays saved.</p>{{range .State.Leads}}{{if ne .ID $.State.SelectedLeadID}}<form method="POST" action="/career-discovery/{{$.ID}}/explore" class="explore-form"><input type="hidden" name="revision" value="{{$.Revision}}"><input type="hidden" name="lead_id" value="{{.ID}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send my excerpt to Meta to investigate “{{.Title}}” (muse-spark-1.3, standard mode).</span></label><button class="button button-secondary" type="submit">Explore: {{.Title}}</button></form>{{end}}{{end}}{{end}}
+      {{if or .EvidenceID (not .LeadPicker)}}<p class="small-muted">Explore another lead in a fresh investigation. This one stays saved.</p>{{range .State.Leads}}{{if ne .ID $.State.SelectedLeadID}}<form method="POST" action="/career-discovery/{{$.ID}}/explore" class="explore-form"><input type="hidden" name="revision" value="{{$.Revision}}"><input type="hidden" name="lead_id" value="{{.ID}}"><label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send my excerpt to {{$.Destination}} to investigate “{{.Title}}” .</span></label><button class="button button-secondary" type="submit">Explore: {{.Title}}</button></form>{{end}}{{end}}{{end}}
     </section>{{end}}
     <details class="career-evidence-source"><summary>Source record · résumé and statements</summary><h3>Résumé excerpt you provided</h3><pre class="evidence-text">{{.State.Resume.Text}}</pre>{{range .State.Responses}}<h3>Muse asked</h3><p>{{.Question}}</p><p class="small-muted">Candidate self-report · {{.Source.ID}}</p><pre class="evidence-text">{{.Source.Text}}</pre>{{end}}</details>
     <p><a href="/career-discovery">All investigations / start another</a></p>
@@ -56,7 +56,7 @@
 <div class="investigator-start">
   <form method="POST" action="/career-discovery" class="career-evidence-form">
     <div class="field"><label for="discovery-resume">Your résumé bullets</label><textarea id="discovery-resume" name="resume" rows="8" maxlength="8000" placeholder="• Provided Linux and database troubleshooting support.&#10;• Helped customers resolve account and access issues." required></textarea><small>Paste a few ordinary bullets. Muse will identify which experiences are worth investigating. Use synthetic information for public demonstrations.</small></div>
-    <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send this excerpt to Meta to identify investigation leads with muse-spark-1.3 (standard mode). Your interview is saved locally. AI proposals require my review before they represent my experience.</span></label>
+    <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send this excerpt to {{.Destination}} to identify investigation leads. Your interview is saved locally. AI proposals require my review before they represent my experience.</span></label>
     <button class="button button-primary" type="submit">Find my investigation leads</button>
   </form>
   {{if .Sessions}}<h2>Saved investigations</h2><ul>{{range .Sessions}}<li><a href="/career-discovery/{{.ID}}">Investigation {{.ID}}</a> · <time datetime="{{.CreatedAt}}">{{humanDate .CreatedAt}}</time></li>{{end}}</ul>{{end}}

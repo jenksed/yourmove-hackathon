@@ -1388,3 +1388,15 @@ form[data-dirty="true"] [data-answer-status] {color:var(--color-dirty);font-weig
 .role-column .story-card{margin:0 0 14px}
 .investigator-tag{font-size:13px;font-weight:650;color:var(--color-muted)}
 .role-evidence-note{max-width:780px}
+
+/* HACK-006 Living Career Intelligence Studio */
+.studio-journey{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 28px;font-size:14px}
+.studio-journey a{font-weight:650}
+.studio-section{max-width:1180px;margin:0 0 36px}
+.studio-section>p,.studio-connection p{max-width:780px}
+.studio-stories{display:grid;gap:4px}
+.studio-kind{font-size:12px;font-weight:650;vertical-align:middle;border:1px solid var(--color-border);border-radius:999px;padding:2px 10px}
+.studio-kind-hypothesis{color:var(--color-muted)}
+.studio-alert{border:1px solid var(--color-border);border-radius:8px;padding:10px 14px;background:var(--color-primary-soft);max-width:780px}
+.studio-challenge fieldset{display:grid;gap:8px;max-width:780px}
+.studio-challenge label{display:flex;gap:8px;align-items:center}

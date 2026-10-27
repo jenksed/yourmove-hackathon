@@ -55,3 +55,11 @@ The maintained engineering backlog is [`docs/BACKLOG.md`](docs/BACKLOG.md). It r
 5. After completing an item, update `docs/BACKLOG.md` with its status, commit/PR and tests/evidence; keep deferred work discoverable. Use a separate PR for unrelated refinements rather than growing a closeout diff.
 
 If the user asks to **refactor**, favor the maintainability items after Phase 2 is merged and avoid creating a new framework or browser stack. If the user asks for a **beta release**, evaluate the actual frozen artifact against `docs/RELEASE_POLICY.md` regardless of a green CI or source-merge decision.
+
+## Hackathon inference guidance (HACK-006, temporary)
+
+- Career Discovery inference destination is selected by `HACKATHON_MUSE_BACKEND`: unset/`meta` uses Meta (`muse-spark-1.3`, `MODEL_API_KEY`); `baseten` uses Baseten (`meta-models/muse-spark-open-1026`, `BASETEN_API_KEY`). There is no automatic fallback; a missing key for the selected backend is an error.
+- Consent copy must name the actual destination (`discoveryDestination()` in `internal/app/career_connections.go`) before any request. Keep real candidate information off Baseten until consent and provider behavior are verified; synthetic data only for Baseten checks.
+- Cross-experience synthesis (`SynthesizeConnections`) returns hypotheses, never approved facts. Exact quotations validate against host-supplied source material; they do not prove an interpretation true. Challenged interpretations stay visible and are never promoted into Career Evidence or silently rewritten into saved answers/letters.
+- Baseten support is hackathon-only and removable: see `docs/hackathon/BASETEN_TEMPORARY_BACKEND.md` (`grep -rn HACK-BASETEN internal/`).
+- Engine is the independent `career-discovery/` checkout; `career-discovery.lock` pins its commit. Verify the checkout HEAD matches the lock before building.

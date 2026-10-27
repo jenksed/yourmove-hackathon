@@ -30,6 +30,7 @@ type discoveryPage struct {
 	Notice                   string
 	CanAnswer                bool
 	Sessions                 []discoverySessionLink
+	Destination              string
 }
 type discoverySessionLink struct {
 	ID        int64
@@ -121,6 +122,7 @@ func (a *App) careerDiscoveryPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	p.Destination = discoveryDestination()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, no-store")
 	_ = a.resources.careerDiscoveryTemplate.Execute(w, p)
@@ -131,7 +133,7 @@ func discoveryConsent(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	if len(r.PostForm["consent"]) != 1 || r.PostForm.Get("consent") != "yes" {
-		http.Error(w, "Authorize sending this interview to Meta before continuing", 400)
+		http.Error(w, "Authorize sending this to "+discoveryDestination()+" before continuing", 400)
 		return false
 	}
 	return true

@@ -43,6 +43,7 @@ type appResources struct {
 	careerEvidenceTemplate        *template.Template
 	careerDiscoveryTemplate       *template.Template
 	careerRolesTemplate           *template.Template
+	careerStudioTemplate          *template.Template
 }
 
 // New parses each page with the shared partials once, before serving requests.
@@ -75,6 +76,7 @@ func New(config Config) (*App, error) {
 		{"templates/career_evidence.html", &resources.careerEvidenceTemplate},
 		{"templates/career_discovery.html", &resources.careerDiscoveryTemplate},
 		{"templates/career_roles.html", &resources.careerRolesTemplate},
+		{"templates/career_studio.html", &resources.careerStudioTemplate},
 	} {
 		parsed, err := template.New(strings.TrimPrefix(page.path, "templates/")).Funcs(template.FuncMap{"humanDate": humanDate}).ParseFS(config.TemplateFiles, page.path, "templates/partials.html")
 		if err != nil {
@@ -87,6 +89,9 @@ func New(config Config) (*App, error) {
 	}
 	if err := initializeDiscovery(config.DB); err != nil {
 		return nil, fmt.Errorf("initialize Career Discovery: %w", err)
+	}
+	if err := initializeConnections(config.DB); err != nil {
+		return nil, fmt.Errorf("initialize career connections: %w", err)
 	}
 	if err := initializeRoleAnalyses(config.DB); err != nil {
 		return nil, fmt.Errorf("initialize role analyses: %w", err)
