@@ -31,7 +31,7 @@
       {{if .State.Proposal.Unresolved}}<h3>Still unresolved</h3><ul>{{range .State.Proposal.Unresolved}}<li>{{.}}</li>{{end}}</ul>{{end}}
       <form method="POST" action="/career-discovery/{{.ID}}/evidence"><input type="hidden" name="revision" value="{{.Revision}}"><p class="small-muted">This creates an editable draft. Approval requires your confirmation in Career Evidence.</p><button class="button button-primary" type="submit">Create evidence draft for review</button></form>
     </section>{{end}}
-    {{if .CanAnswer}}<section class="question-card" aria-labelledby="current-question"><p class="story-kicker">Muse asks · one question at a time</p><h2 id="current-question" class="question-text">{{.State.Question}}</h2>
+    {{if .CanAnswer}}<section class="question-card focus-panel" aria-labelledby="current-question"><p class="kicker">Muse asks · one question at a time</p><h2 id="current-question" class="question-text">{{.State.Question}}</h2>
       <form method="POST" action="/career-discovery/{{.ID}}/next" class="career-evidence-form"><input type="hidden" name="revision" value="{{.Revision}}">
         <div class="field"><label for="discovery-answer">Your response, in your own words</label><textarea id="discovery-answer" name="answer" rows="6" maxlength="2000" required></textarea><small>Specifics help: what you personally did, how you decided, who else was involved, and what you do not know.</small></div>
         <label class="confirm-row"><input type="checkbox" name="consent" value="yes" required><span>Send this response, the résumé excerpt, and earlier interview responses to {{.Destination}} for this request.</span></label>

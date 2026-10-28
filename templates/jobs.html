@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f7f4"><title>Opportunities · YourMove</title><link rel="stylesheet" href="/static/styles.css"><script defer src="/static/ui.js"></script></head><body>
 {{template "shell-open" "jobs"}}
 <div class="page-heading">
-  <div><h1>Opportunities</h1></div>
+  <div><p class="kicker">Work</p><h1>Opportunities</h1></div>
   <div class="heading-actions"><a class="button button-secondary" href="/resumes">Document library</a>{{if .Total}}<a class="button button-secondary" href="#add-opportunity" data-open-add>+ Add opportunity</a>{{end}}</div>
 </div>
 {{if not .Total}}<p class="first-job-intro">Save any job posting here. Add a resume when you’re ready to prepare it, and reuse saved materials on later applications.</p>{{end}}
@@ -23,7 +23,7 @@
     {{else}}<p class="queue-progress-note">Save an opportunity to start your next application.</p>{{end}}
     </details>
   </div>
-  <div class="dashboard-next">
+  <div class="dashboard-next focus-panel">
     {{if .Next}}
     <p class="eyebrow">Suggested next opportunity</p>
     <h2 id="next-move-title">{{.Next.Title}}</h2>
@@ -61,7 +61,7 @@
     {{range .Jobs}}
     <article class="job-row" data-job-row data-stage="{{.Stage}}" data-priority="{{.Priority}}" data-order="{{.ID}}" data-company="{{.Company}}" data-search="{{.Title}} {{.Company}} {{.Host}}">
       <label class="job-select"><input type="checkbox" name="job_ids" value="{{.ID}}" aria-label="Select {{if .Title}}{{.Title}}{{else}}{{.URL}}{{end}} for deletion" {{if gt .SubmissionCount 0}}disabled title="Submitted job: remove individually from its workspace"{{end}}></label>
-      <div class="job-row-body"><div class="job-row-meta"><span class="company-label">{{if .Company}}{{.Company}}{{else}}{{.Host}}{{end}}</span>{{template "status-badge" .}}{{template "priority-badge" .}}</div>
+      <div class="job-row-body"><div class="job-row-meta">{{template "platform-icon" .}}<span class="company-label">{{if .Company}}{{.Company}}{{else}}{{.Host}}{{end}}</span>{{if .PlatformLabel}}<span class="platform-label">{{.PlatformLabel}}</span>{{end}}{{template "status-badge" .}}{{template "priority-badge" .}}</div>
         <h3><a class="job-title" href="/jobs/{{.ID}}">{{if .Title}}{{.Title}}{{else}}{{.URL}}{{end}}</a></h3>
         <p class="job-row-detail">{{if gt .SelectedResumeID 0}}Resume selected{{else}}{{with index $.Matches .ID}}{{if eq .Status "matched"}}Suggested: {{.ResumeName}}{{else}}No resume selected{{end}}{{else}}No resume selected{{end}}{{end}} <span class="dot-sep" aria-hidden="true">·</span> {{.ActionLabel}}</p>
       </div>

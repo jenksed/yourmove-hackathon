@@ -31,6 +31,16 @@ Aesthetic direction: **editorial utility with precise operational feedback**. Pr
 
 These are distinct compositions, not variations of the same dashboard card stack.
 
+## Career Studio: one next step
+
+Studio is a starting point for the experience journey. Lead with one action derived from the saved state: review an unfinished experience, add a first or second experience, or inspect saved patterns. Use a plain page title and one sentence explaining the purpose. Draft and reviewed experiences appear as compact linked rows with explicit review states; their full situations, actions, and outcomes remain in their editors. Display patterns and their sources, limits, challenges, and refresh consent in one workspace. Do not introduce a second “Career Mirror” section that repeats the same result or empty state. Role exploration and application preparation are concise destinations rather than duplicated workspaces.
+
+The October 27 simplification replaces the competing suggestion rail, full experience excerpts, duplicate pattern introductions, and role summary cards. Browser checks at 1280px and 390px confirm the featured action opens the exact draft and the narrow page has no horizontal overflow. Native Wails acceptance remains unverified.
+
+The follow-up brand pass gives the two onward tasks distinct surfaces: logo blue for understanding patterns, logo mint for applying experience. Pair color with icons, descriptive headings, explicit readiness and action labels. Place them side by side on wide windows and stack them below 1000px; saved pattern results use the full reading width. Mint here identifies a destination, not a success or verification state. Scoped light, explicit-dark and system-dark palettes keep normal text contrast above 4.5:1.
+
+The whole-page composition uses four related treatments: a restrained textured focus card with the strongest action; a neutral elevated library for saved objects; blue for interpretation; mint for onward application work. Use the same 14px section radius, 42px header icons/control targets, heading scale and 24px vertical rhythm. The library groups its count and Manage link in the header, shows drafts before reviewed records, and groups guided/manual creation in the footer. Keep the texture quieter than the text and use labels as well as color to communicate purpose. Verified in the controlled browser at 1280px and 390px, including exact draft navigation; native Wails remains unverified.
+
 ## Behavior is not styling
 
 The Go handlers remain authoritative. Keep server-backed form POSTs, explicit resume selection saving, per-action permission checks, source verification, draft versioning, and human submission confirmation. A WebView decoration must not imply the employer accepted an attachment or submission. Local and remote generation consent must remain explicit. Browser and Wails redirect compatibility are separate concerns.

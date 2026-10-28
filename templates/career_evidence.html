@@ -8,13 +8,14 @@
 
 {{if .Current}}
 <section class="career-evidence-editor" aria-labelledby="career-evidence-title">
-  <div class="career-evidence-editor-heading"><div><h2 id="career-evidence-title">{{if .Current.Title}}{{.Current.Title}}{{else}}Untitled draft{{end}}</h2>{{if eq .Current.Status "reviewed"}}<p class="evidence-status"><strong>Reviewed by you</strong> · Revision {{.Current.Revision}}</p>{{else}}<p class="evidence-status"><strong>Draft — needs your review</strong> · Revision {{.Current.Revision}}</p>{{end}}</div><div class="editor-return-links"><a href="/career-evidence">All experiences</a><a href="/career-studio">Return to Career Studio</a></div></div>
+  <div class="career-evidence-editor-heading"><div><p class="kicker">Career Evidence / {{if eq .Current.Status "reviewed"}}Reviewed by you{{else}}Draft{{end}}</p><h2 id="career-evidence-title">{{if .Current.Title}}{{.Current.Title}}{{else}}Untitled draft{{end}}</h2>{{if eq .Current.Status "reviewed"}}<p class="evidence-status"><strong>Reviewed by you</strong> · Revision {{.Current.Revision}}</p>{{else}}<p class="evidence-status"><strong>Draft — needs your review</strong> · Revision {{.Current.Revision}}</p>{{end}}</div><div class="editor-return-links"><a href="/career-evidence">All experiences</a><a href="/career-studio">Return to Career Studio</a></div></div>
   {{if eq .Current.Status "reviewed"}}<p class="small-muted">You confirmed this saved record reflects your experience. This is applicant review, not independent verification. Saving changed content without confirming review returns this record to Draft. Saving unchanged content keeps its review status.</p>{{else}}<p class="small-muted">Drafts can be incomplete. Review requires a title, situation, and actions. Saving keeps this record a draft until you confirm it below.</p>{{end}}
+  <div class="evidence-workspace"><div class="evidence-workspace-main">
   <form method="POST" action="/career-evidence/{{.Current.ID}}/save" class="career-evidence-form" id="career-evidence-form">
     <input type="hidden" name="revision" value="{{.Current.Revision}}">
     <div class="field"><label for="career-title">Experience title</label><input id="career-title" name="title" value="{{.Current.Title}}" maxlength="160" autocomplete="off"></div>
-    <div class="field"><label for="career-situation">Situation or context</label><textarea id="career-situation" name="situation" rows="4" maxlength="6000">{{.Current.Situation}}</textarea></div>
-    <div class="field"><label for="career-actions">Actions you took</label><textarea id="career-actions" name="actions" rows="5" maxlength="8000">{{.Current.Actions}}</textarea></div>
+    <div><p class="section-num">01 · Situation</p><div class="field"><label for="career-situation">Situation or context</label><textarea id="career-situation" name="situation" rows="4" maxlength="6000">{{.Current.Situation}}</textarea></div></div>
+    <div><p class="section-num">02 · What you personally did</p><div class="field"><label for="career-actions">Actions you took</label><textarea id="career-actions" name="actions" rows="5" maxlength="8000">{{.Current.Actions}}</textarea></div></div>
     <details class="career-context"><summary>Role, tools, and dates (optional)</summary><div class="career-evidence-context-grid">
       <div class="field"><label for="career-employer">Employer, project, or organization</label><input id="career-employer" name="employer_context" value="{{.Current.EmployerContext}}" maxlength="240"></div>
       <div class="field"><label for="career-role">Role or responsibility</label><input id="career-role" name="role_context" value="{{.Current.RoleContext}}" maxlength="240"></div>
@@ -26,16 +27,17 @@
     <div class="field"><label for="career-source-notes">Source notes or supporting reference</label><textarea id="career-source-notes" name="source_notes" rows="3" maxlength="3000">{{.Current.SourceNotes}}</textarea><small>Notes only. YourMove does not open or fetch external references.</small></div>
     <label class="confirm-row career-evidence-review-confirm"><input type="checkbox" name="confirm_review" value="yes"><span>I confirm this record accurately describes my experience. Marking it reviewed does not mean a third party verified it.</span></label>
     <div class="career-evidence-form-actions">{{if eq .Current.Status "reviewed"}}<button type="submit" class="button button-primary">Save changes</button><button type="submit" class="button button-secondary" formaction="/career-evidence/{{.Current.ID}}/review">Save and confirm reviewed</button>{{else}}<button type="submit" class="button button-primary">Save draft</button><button type="submit" class="button button-secondary" formaction="/career-evidence/{{.Current.ID}}/review">Confirm as reviewed</button>{{end}}</div>
-  </form>
+  </form></div>
   {{if or .Current.SourceWriting .Current.SourceNotes}}
-  <details class="career-evidence-source">
+  <aside class="evidence-workspace-source"><h3 class="evidence-source-heading">Source context</h3><p class="small-muted">What this record was proposed from. Source text is provenance, not verification.</p>
+  <details class="career-evidence-source" open>
     <summary>Inspect source and supporting notes</summary>
     {{if .Current.SourceLibraryEntryID}}<p class="small-muted">Snapshot from Answer Library{{if .Current.SourceEmployer}} · {{.Current.SourceEmployer}}{{else if .Current.SourceHost}} · {{.Current.SourceHost}}{{end}}{{if .Current.SourceJobTitle}} · {{.Current.SourceJobTitle}}{{end}}</p>{{end}}
     {{if .Current.SourceQuestion}}<h3>Original employer question</h3><pre class="evidence-text">{{.Current.SourceQuestion}}</pre>{{end}}
     {{if .Current.SourceWriting}}<h3>Original writing</h3><pre class="evidence-text">{{.Current.SourceWriting}}</pre>{{end}}
     {{if .Current.SourceNotes}}<h3>Supporting notes</h3><pre class="evidence-text">{{.Current.SourceNotes}}</pre>{{end}}
-  </details>
-  {{end}}
+  </details></aside>
+  {{end}}</div>
   <form method="POST" action="/career-evidence/{{.Current.ID}}/delete" class="career-evidence-delete">
     <input type="hidden" name="revision" value="{{.Current.Revision}}">
     <label class="confirm-row"><input type="checkbox" name="confirm" value="yes" required><span>Delete this independent Career Evidence record.</span></label>

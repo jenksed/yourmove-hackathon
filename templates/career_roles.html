@@ -10,10 +10,10 @@
 {{else}}
 <section class="role-evidence-note"><h2>Approved history under comparison</h2><ul>{{range .Evidences}}<li><a href="/career-evidence/{{.ID}}">{{.Title}}</a> <span class="small-muted">revision {{.Revision}} · reviewed · outcome: {{.OutcomeState}}</span></li>{{end}}</ul>
 <p class="small-muted">Same records feed both analyses. A new approval or correction changes this set; re-run a comparison to refresh it.</p></section>
-<div class="investigator">
-  {{range .Roles}}
-  <article class="role-column">
-    <p class="investigator-tag">{{.Role.Title}}</p>
+<div class="roles-grid">
+  {{range $i, $_ := .Roles}}
+  <article class="role-column dir-card">
+    <p class="kicker">Direction {{if eq $i 0}}A{{else}}B{{end}}</p>
     <h2>{{.Role.Title}}</h2>
     <p>{{.Role.Focus}}</p>
     {{if .Analysis}}

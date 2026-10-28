@@ -43,7 +43,7 @@ func TestStudioSynthesisChallengeStaleAndRestart(t *testing.T) {
 		return rec.Body.String()
 	}
 	body := get("/career-studio")
-	for _, want := range []string{"Cross-functional technical problem-solving", "Checked slow query log and used EXPLAIN", "What this does not establish", "AI hypothesis", "Challenge this interpretation"} {
+	for _, want := range []string{"Cross-functional technical problem-solving", "Checked slow query log and used EXPLAIN", "What this does not establish", "AI suggestions to review, not approved facts", "Challenge this interpretation"} {
 		if !strings.Contains(body, want) {
 			t.Fatal("studio missing", want)
 		}
@@ -116,11 +116,11 @@ func TestStudioKeepsSavedSynthesisVisibleAfterDraftDemotion(t *testing.T) {
 	}
 }
 
-// TestCareerMirrorShowsDiscoveryAndRestrainedAbstention covers both Bet C
+// TestStudioPatternsShowsDiscoveryAndRestrainedAbstention covers both Bet C
 // acceptance outcomes from the same Studio data: a useful discovery the
 // candidate can inspect (sources, use, limits, challenge link) and an honest
 // no-connection result that presents nothing as a discovery.
-func TestCareerMirrorShowsDiscoveryAndRestrainedAbstention(t *testing.T) {
+func TestStudioPatternsShowsDiscoveryAndRestrainedAbstention(t *testing.T) {
 	a, _ := testWorkspace(t)
 	seedReviewedEvidence(t, a)
 	seedSecondReviewed(t, a)
@@ -139,14 +139,14 @@ func TestCareerMirrorShowsDiscoveryAndRestrainedAbstention(t *testing.T) {
 	}
 	body := studio()
 	for _, want := range []string{
-		"Career Mirror",
-		"What your reviewed records establish",
+		"Patterns across your experiences",
+		"What supports this — your actual actions",
 		"What we uncovered across them",
 		"What this could mean for your applications",
 		"I can credibly say I diagnose problems",
-		"What still is not established",
+		"What this does not establish",
 		"Production change ownership stayed with other teams",
-		`href="#connection-conn-1"`,
+		`id="connection-conn-1"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatal("mirror missing discovery piece", want)
@@ -160,7 +160,7 @@ func TestCareerMirrorShowsDiscoveryAndRestrainedAbstention(t *testing.T) {
 		t.Fatal("re-synthesize", got.Code, got.Body.String())
 	}
 	body = studio()
-	if !strings.Contains(body, "found no defensible cross-experience connection, so nothing is presented as a discovery") {
+	if !strings.Contains(body, "found no defensible connection across these records") {
 		t.Fatal("mirror missing restrained outcome")
 	}
 	if strings.Contains(body, "What we uncovered across them") {
@@ -188,7 +188,7 @@ func TestStudioEligibilityGateAndSentCount(t *testing.T) {
 	if strings.Contains(body, `action="/career-connections/synthesize"`) {
 		t.Fatal("zero-eligible studio offers a synthesis request that must fail")
 	}
-	for _, want := range []string{"at least two reviewed", "Investigate an experience", "review your existing drafts", "1 draft record not yet reviewed"} {
+	for _, want := range []string{"at least two reviewed", "Review your next experience", "1 draft to review", `href="/career-evidence/1">Review this experience`} {
 		if !strings.Contains(body, want) {
 			t.Fatal("zero-eligible studio missing", want)
 		}
@@ -199,13 +199,16 @@ func TestStudioEligibilityGateAndSentCount(t *testing.T) {
 	if strings.Contains(body, `action="/career-connections/synthesize"`) {
 		t.Fatal("one-eligible studio offers a synthesis request that must fail")
 	}
-	for _, want := range []string{"at least two reviewed", "explore roles", "outcome unknown to you", "Treated as unknown, not guessed"} {
+	for _, want := range []string{"at least two reviewed", "Explore roles", "outcome unknown to you", "Review your next experience"} {
 		if !strings.Contains(body, want) {
 			t.Fatal("one-eligible studio missing", want)
 		}
 	}
 	if strings.Contains(body, "outcome: unknown") || strings.Contains(body, "reviewed record(s)") {
 		t.Fatal("studio leaks raw outcome or count phrasing")
+	}
+	if strings.Contains(body, "Muse can examine 1") || strings.Contains(body, "Muse will examine 1") {
+		t.Fatal("one-eligible studio implies pattern analysis is available")
 	}
 	// Two eligible: the request form names the exact input scope.
 	seedSecondReviewed(t, a)

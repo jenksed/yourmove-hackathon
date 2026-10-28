@@ -62,6 +62,104 @@ func (j Job) StageLabel() string {
 	}
 }
 
+// PlatformKey names the detected job-board platform for display icons.
+// It is presentation-only; retrieval decisions live in internal/platforms.
+func (j Job) PlatformKey() string {
+	host := strings.ToLower(strings.TrimSpace(j.Host))
+	switch {
+	case host == "jobs.ashbyhq.com":
+		return "ashby"
+	case host == "boards.greenhouse.io" || host == "job-boards.greenhouse.io":
+		return "greenhouse"
+	case host == "jobs.lever.co" || host == "jobs.eu.lever.co":
+		return "lever"
+	case host == "jobs.smartrecruiters.com":
+		return "smartrecruiters"
+	case host == "apply.workable.com":
+		return "workable"
+	case host == "jobs.jobvite.com":
+		return "jobvite"
+	case strings.HasSuffix(host, ".myworkdayjobs.com"):
+		return "workday"
+	case strings.HasSuffix(host, ".teamtailor.com"):
+		return "teamtailor"
+	case strings.HasSuffix(host, ".recruitee.com"):
+		return "recruitee"
+	case strings.HasSuffix(host, ".icims.com"):
+		return "icims"
+	case strings.HasSuffix(host, ".jobs.personio.de") || strings.HasSuffix(host, ".jobs.personio.com"):
+		return "personio"
+	case strings.HasSuffix(host, ".paylocity.com") || host == "paylocity.com":
+		return "paylocity"
+	default:
+		return ""
+	}
+}
+
+// PlatformLabel is the human name for PlatformKey, or "" when unknown.
+func (j Job) PlatformLabel() string {
+	switch j.PlatformKey() {
+	case "ashby":
+		return "Ashby"
+	case "greenhouse":
+		return "Greenhouse"
+	case "lever":
+		return "Lever"
+	case "workday":
+		return "Workday"
+	case "smartrecruiters":
+		return "SmartRecruiters"
+	case "workable":
+		return "Workable"
+	case "jobvite":
+		return "Jobvite"
+	case "teamtailor":
+		return "Teamtailor"
+	case "recruitee":
+		return "Recruitee"
+	case "icims":
+		return "iCIMS"
+	case "personio":
+		return "Personio"
+	case "paylocity":
+		return "Paylocity"
+	default:
+		return ""
+	}
+}
+
+// PlatformGlyph is the 1–2 letter monogram shown inside the platform tile.
+func (j Job) PlatformGlyph() string {
+	switch j.PlatformKey() {
+	case "ashby":
+		return "A"
+	case "greenhouse":
+		return "G"
+	case "lever":
+		return "L"
+	case "workday":
+		return "W"
+	case "smartrecruiters":
+		return "SR"
+	case "workable":
+		return "Wb"
+	case "jobvite":
+		return "J"
+	case "teamtailor":
+		return "T"
+	case "recruitee":
+		return "R"
+	case "icims":
+		return "iC"
+	case "personio":
+		return "P"
+	case "paylocity":
+		return "Pl"
+	default:
+		return "◎"
+	}
+}
+
 func (j Job) PriorityLabel() string {
 	switch j.Priority {
 	case PriorityHigh:

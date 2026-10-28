@@ -3,8 +3,8 @@
 <div class="app-shell">
   <aside class="sidebar" aria-label="Primary navigation" id="workspace-navigation">
     <a class="brand" href="/jobs" aria-label="YourMove — Opportunities">
-      <img class="brand-wordmark brand-light" src="/static/yourmove-wordmark-primary.svg" alt="YourMove" width="166" height="49">
-      <img class="brand-wordmark brand-dark" src="/static/yourmove-wordmark-reverse.svg" alt="" width="166" height="49">
+      <img class="brand-wordmark brand-light" src="/static/yourmove-compact-light.png" alt="YourMove" width="166" height="49">
+      <img class="brand-wordmark brand-dark" src="/static/yourmove-compact-dark.png" alt="" width="166" height="49">
     </a>
     <button type="button" class="navigation-close button button-secondary" data-navigation-close hidden>Close navigation</button>
     <nav class="primary-nav" aria-label="Workspace">
@@ -34,6 +34,7 @@
 {{end}}
 {{define "shell-close"}}</main></div></div>{{end}}
 {{define "status-badge"}}<span class="status status-{{.Stage}}">{{.StageLabel}}</span>{{end}}
+{{define "platform-icon"}}<span class="platform-tile plat-{{if .PlatformKey}}{{.PlatformKey}}{{else}}unknown{{end}}" {{if .PlatformLabel}}title="{{.PlatformLabel}}" aria-label="Posted via {{.PlatformLabel}}"{{else}}title="{{.Host}}" aria-label="Posted via {{.Host}}"{{end}} aria-hidden="false">{{.PlatformGlyph}}</span>{{end}}
 {{define "priority-badge"}}{{if eq .Priority "high"}}<span class="priority-flag">High priority</span>{{else if eq .Priority "low"}}<span class="priority-quiet">Low priority</span>{{end}}{{end}}
 
 {{define "studio-local-nav"}}

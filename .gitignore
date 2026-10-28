@@ -34,3 +34,4 @@ jobs.db-shm
 
 # Authoritative event-only module: independent repository, never vendor the host.
 /career-discovery/
+.gstack/
